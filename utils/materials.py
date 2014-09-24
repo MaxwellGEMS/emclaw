@@ -447,8 +447,13 @@ class Material2D(Material):
             self.delta_smooth = False
             self.delta_omega  = 2.0*np.pi
             self.delta_function = np.cos
+            
             self.delta_smooth_function = self._gaussianf
+            self.delta_smooth_width = 5.0
+            self.delta_smoot_length = 5.0
+            
             self.function = self._oscillate_fiber
+            
             self.update_at_each_stage = True
         
         if self.nonlinear:
@@ -531,8 +536,8 @@ class Material2D(Material):
 
     def _gaussianf(self,x,y):
 
-        u = x - self.delta_corner[0] + self.delta_length/2.0
-        v = y - self.delta_corner[1] + self.delta_width/2.0
+        u = x - (self.delta_corner[0] + self.delta_smoot_length/2.0)
+        v = y - (self.delta_corner[1] + self.delta_smooth_width/2.0)
 
         r2 = u**2/self.delta_length**2 + v**2/self.delta_width**2
         
@@ -735,13 +740,16 @@ class Material3D(Material):
             self.fiber_length = 100.0
             self.delta_width  = 5.0
             self.delta_height = 5.0
-            self.delta_length = 100.0
+            self.delta_length = 10.0
             self.delta_corner = [5.0,0.0,0.0]
             self.delta_eta    = np.ones([6])
             self.delta_smooth = False
             self.delta_omega  = 2.0*np.pi
             self.delta_function = np.cos
             self.delta_smooth_function = self._gaussianf
+            self.delta_smooth_width  = 5.0
+            self.delta_smooth_length = 10.0
+            self.delta_smooth_height = 5.0
             self.function = self._oscillate_fiber
             self.update_at_each_stage = True
         
@@ -832,9 +840,9 @@ class Material3D(Material):
 
     def _gaussianf(self,x,y,z):
 
-        u = x - self.delta_corner[0] + self.delta_width[0]/2.0
-        v = y - self.delta_corner[1] + self.delta_width[1]/2.0
-        v = z - self.delta_corner[2] + self.delta_width[2]/2.0
+        u = x - (self.delta_corner[0] + self.delta_smooth_length/2.0)
+        v = y - (self.delta_corner[1] + self.delta_smooth_width/2.0)
+        v = z - (self.delta_corner[2] + self.delta_smooth_height/2.0)
 
         r2 = u**2/self.delta_length**2 + v**2/self.delta_width**2 + w**2/self.delta_length**2
         
@@ -1000,4 +1008,3 @@ class Material3D(Material):
         self.v = 1.0
         self.update_at_each_stage = False
         self.metal = metal
-        
