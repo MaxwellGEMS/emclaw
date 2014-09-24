@@ -29,6 +29,7 @@ material.delta_length = 5.0
 material.delta_corner = [sx/2.0 - material.delta_length/2.0, y_lower]
 material.delta_eta[:] = 0.15
 material.delta_function = np.sin
+material.delta_smooth_width = sy
 material.delta_smooth = True
 material.delta_omega  = (material.delta_length/(1.0/1.5))*np.pi
 material._calculate_n()
