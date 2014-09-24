@@ -1,5 +1,5 @@
 ! ==================================================================
-subroutine tfluct3(ixyz,maxnx,meqn,mwaves,maux,mbc,mx,ql,qr,auxl,auxr,amdq2)
+subroutine tfluct3(ixyz,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,amdq2)
 ! ==================================================================
 !
 !   "Internal" Riemann solver for Maxwell's equations in 3D. 
@@ -10,40 +10,42 @@ subroutine tfluct3(ixyz,maxnx,meqn,mwaves,maux,mbc,mx,ql,qr,auxl,auxr,amdq2)
 !             auxl  contains the auxiliary vector at the left edge of each cell
 !             auxr  contains the state vector at the right edge of each cell
 !             maxnx contains the number of physical points (without ghost cells)
-!             mbc   contains the number of ghost cells
-!             meqn  contains the number of equations
+!
+!             num_ghost   contains the number of ghost cells
+!             num_eqn     contains the number of equations
 !
 !   On output, amdq2 contains the decomposition of the flux difference
-!              f(qr(i)) - f(ql)) - deltaxyz*psi(i).
+!              f(qr(i)) - f(ql)) - deltaxyz*psii.
 !
 
     implicit none
 
-    double precision :: auxl(maux,1-mbc:maxnx+mbc)
-    double precision :: auxr(maux,1-mbc:maxnx+mbc)
-    double precision ::   ql(meqn,1-mbc:maxnx+mbc)
-    double precision ::   qr(meqn,1-mbc:maxnx+mbc)
-    double precision :: amdq2(meqn,1-mbc:maxnx+mbc)
-    double precision :: chi2, chi3, vac(6)
-    double precision :: psi(6), kappa(6), dq(6)
-    integer :: i, mx, mbc, maxnx, maux, meqn, mwaves, ixyz
+    integer,          intent(in)  :: ixyz, mx, num_ghost, maxnx, num_aux, num_eqn, num_waves
 
+    double precision, intent(in)  :: auxl(num_aux,1-num_ghost:maxnx+num_ghost)
+    double precision, intent(in)  :: auxr(num_aux,1-num_ghost:maxnx+num_ghost)
+    double precision, intent(in)  ::   ql(num_eqn,1-num_ghost:maxnx+num_ghost)
+    double precision, intent(in)  ::   qr(num_eqn,1-num_ghost:maxnx+num_ghost)
+
+    double precision, intent(out) :: amdq2(num_eqn,1-num_ghost:maxnx+num_ghost)
+
+    integer          :: i
+    double precision :: q1i, q1im, q2i, q2im, q3i, q3im, q4i, q4im, q5i, q5im, q6i, q6im
+    double precision :: dq1, dq2, dq3, dq4, dq5, dq6
+    double precision :: df1, df2, df3, df4, df5, df6, psi1, psi2, psi3, psi4, psi5, psi6
     double precision :: eta1i, eta1im, eta2i, eta2im, eta3i, eta3im
     double precision :: eta4i, eta4im, eta5i, eta5im, eta6i, eta6im
     double precision :: etat1i, etat1im, etat2i, etat2im, etat3i, etat3im
     double precision :: etat4i, etat4im, etat5i, etat5im, etat6i, etat6im
-    double precision :: q1i, q1im, q2i, q2im, q3i, q3im
-    double precision :: q4i, q4im, q5i, q5im, q6i, q6im
+    double precision :: kappa1, kappa2, kappa3, kappa4, kappa5, kappa6, zo, co, dx, dy, dz
     double precision :: eo, mo
-    double precision :: df1, df2, df3, df4, df5, df6
-    double precision :: dx, dy, dz
-    
-    common /cparam/  dx, dy, dz, chi2(6), chi3(6), eo, mo
+    double precision :: chi2(6), chi3(6)
 
-!     split the jump in q at each interface into waves
-    vac(1:3) = mo
-    vac(4:6) = eo
-    do i = 2-mbc, mx+mbc
+    common /cparam/  dx, dy, dz, chi2, chi3, co, zo, eo, mo
+
+    amdq2(:,:) = 0.0d0
+
+    do i = 2-num_ghost, mx+num_ghost
         eta1i   = auxr(1,i)
         eta1im  = auxl(1,i)
         eta2i   = auxr(2,i)
@@ -82,72 +84,62 @@ subroutine tfluct3(ixyz,maxnx,meqn,mwaves,maux,mbc,mx,ql,qr,auxl,auxr,amdq2)
         q6i     = qr(6,i)
         q6im    = ql(6,i)
 
-        psi(1) = -0.5d0*(etat1i*q1i + etat1im*q1im)
-        psi(2) = -0.5d0*(etat2i*q2i + etat2im*q2im)
-        psi(3) = -0.5d0*(etat3i*q3i + etat3im*q3im)
-        psi(4) = -0.5d0*(etat4i*q4i + etat4im*q4im)
-        psi(5) = -0.5d0*(etat5i*q5i + etat5im*q5im)
-        psi(6) = -0.5d0*(etat6i*q6i + etat6im*q6im)        
+        psi1 = -0.5d0*(etat1i*q1i + etat1im*q1im)
+        psi2 = -0.5d0*(etat2i*q2i + etat2im*q2im)
+        psi3 = -0.5d0*(etat3i*q3i + etat3im*q3im)
+        psi4 = -0.5d0*(etat4i*q4i + etat4im*q4im)
+        psi5 = -0.5d0*(etat5i*q5i + etat5im*q5im)
+        psi6 = -0.5d0*(etat6i*q6i + etat6im*q6im)
 
-!     flux difference
-        dq(1) = (q1i - q1im)
-        dq(2) = (q2i - q2im)
-        dq(3) = (q3i - q3im)
-        dq(4) = (q4i - q4im)
-        dq(5) = (q5i - q5im)
-        dq(6) = (q6i - q6im)
+!       flux difference
+        dq1 = (q1i - q1im)
+        dq2 = (q2i - q2im)
+        dq3 = (q3i - q3im)
+        dq4 = (q4i - q4im)
+        dq5 = (q5i - q5im)
+        dq6 = (q6i - q6im)
 
-        kappa(1) = 0.5d0*(eta1i + eta1im + 2.d0*chi2(1)*(q1i + q1im) + 3.d0*chi3(1)*((q1i + q1im)**2))
-        kappa(2) = 0.5d0*(eta2i + eta2im + 2.d0*chi2(2)*(q2i + q2im) + 3.d0*chi3(2)*((q2i + q2im)**2))
-        kappa(3) = 0.5d0*(eta3i + eta3im + 2.d0*chi2(3)*(q3i + q3im) + 3.d0*chi3(3)*((q3i + q3im)**2))
-        kappa(4) = 0.5d0*(eta4i + eta4im + 2.d0*chi2(4)*(q4i + q4im) + 3.d0*chi3(4)*((q4i + q4im)**2))
-        kappa(5) = 0.5d0*(eta5i + eta5im + 2.d0*chi2(5)*(q5i + q5im) + 3.d0*chi3(5)*((q5i + q5im)**2))
-        kappa(6) = 0.5d0*(eta6i + eta6im + 2.d0*chi2(6)*(q6i + q6im) + 3.d0*chi3(6)*((q6i + q6im)**2))
-
+        kappa1 = 0.5d0*(eta1i + eta1im + 2.d0*chi2(1)*(q1i + q1im) + 3.d0*chi3(1)*((q1i + q1im)**2))
+        kappa2 = 0.5d0*(eta2i + eta2im + 2.d0*chi2(2)*(q2i + q2im) + 3.d0*chi3(2)*((q2i + q2im)**2))
+        kappa3 = 0.5d0*(eta3i + eta3im + 2.d0*chi2(3)*(q3i + q3im) + 3.d0*chi3(3)*((q3i + q3im)**2))
+        kappa4 = 0.5d0*(eta4i + eta4im + 2.d0*chi2(4)*(q4i + q4im) + 3.d0*chi3(4)*((q4i + q4im)**2))
+        kappa5 = 0.5d0*(eta5i + eta5im + 2.d0*chi2(5)*(q5i + q5im) + 3.d0*chi3(5)*((q5i + q5im)**2))
+        kappa6 = 0.5d0*(eta6i + eta6im + 2.d0*chi2(6)*(q6i + q6im) + 3.d0*chi3(6)*((q6i + q6im)**2))
 
         if (ixyz == 1) then
-            df2 = dq(6)/vac(2) - dx*psi(2)
-            df3 = dq(5)/vac(3) - dx*psi(3)
-            df5 = dq(3)/vac(5) - dx*psi(5)
-            df6 = dq(2)/vac(6) - dx*psi(6)
-            
-            amdq2(1,i) = 0.0d0
-            amdq2(2,i) = df2/kappa(2)
-            amdq2(3,i) = df3/kappa(3)
-            amdq2(4,i) = 0.0d0
-            amdq2(5,i) = df5/kappa(5)
-            amdq2(6,i) = df6/kappa(6)
+            df2 = dq6/eo - dx*psi2
+            df3 = dq5/eo - dx*psi3
+            df5 = dq3/mo - dx*psi5
+            df6 = dq2/mo - dx*psi6
+
+            amdq2(2,i) = df2/kappa2
+            amdq2(3,i) = df3/kappa3
+            amdq2(5,i) = df5/kappa5
+            amdq2(6,i) = df6/kappa6
 
         else if (ixyz == 2) then
-            df1 = dq(6)/vac(1) - dy*psi(1)
-            df3 = dq(4)/vac(3) - dy*psi(3)
-            df4 = dq(3)/vac(4) - dy*psi(4)
-            df6 = dq(1)/vac(6) - dy*psi(6)
+            df1 = dq6/eo - dy*psi1
+            df3 = dq4/eo - dy*psi3
+            df4 = dq3/mo - dy*psi4
+            df6 = dq1/mo - dy*psi6
 
-            amdq2(1,i) = df1/kappa(1)
-            amdq2(2,i) = 0.0d0
-            amdq2(3,i) = df3/kappa(3)
-            amdq2(4,i) = df4/kappa(4)
-            amdq2(5,i) = 0.0d0
-            amdq2(6,i) = df6/kappa(6)
+            amdq2(1,i) = df1/kappa1
+            amdq2(3,i) = df3/kappa3
+            amdq2(4,i) = df4/kappa4
+            amdq2(6,i) = df6/kappa6
 
         else if (ixyz == 3) then
-            df1 = dq(5)/vac(1) - dz*psi(1)
-            df2 = dq(4)/vac(2) - dz*psi(2)
-            df4 = dq(2)/vac(4) - dz*psi(4)
-            df5 = dq(1)/vac(5) - dz*psi(5)
+            df1 = dq5/eo - dz*psi1
+            df2 = dq4/eo - dz*psi2
+            df4 = dq2/mo - dz*psi4
+            df5 = dq1/mo - dz*psi5
 
-            amdq2(1,i) = df1/kappa(1)
-            amdq2(2,i) = df2/kappa(2)
-            amdq2(3,i) = 0.0d0
-            amdq2(4,i) = df4/kappa(4)
-            amdq2(5,i) = df5/kappa(5)
-            amdq2(6,i) = 0.0d0
-
+            amdq2(1,i) = df1/kappa1
+            amdq2(2,i) = df2/kappa2
+            amdq2(4,i) = df4/kappa4
+            amdq2(5,i) = df5/kappa5
         endif
     enddo
 
     return
-
-    end subroutine tfluct3
-
+end subroutine tfluct3
