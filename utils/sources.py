@@ -213,6 +213,12 @@ class Source2D(Sources):
             self.function = self._harmonic_pulse
             self.dim = 'x'
 
+        if self.shape=='bessel pulse':
+            self.pulse_width = self.wavelength
+            self.bessel_order = 0
+            self.function = self._bessel_pulse
+            self.kill_after_first_zero = True
+
         if self.shape=='off':
             self.pulse_width = self.wavelength
             self.shape_function = np.exp
@@ -224,7 +230,12 @@ class Source2D(Sources):
             self.transversal_function = lambda y: np.exp(-(y - self.transversal_offset)**2/self.transversal_width**2)
         
         if self.transversal_shape=='cosine':
-            self.transversal_function = lambda y: np.cos((y-self.transversal_offset)*np.pi/(self.transversal_width))
+            self.transversal_function = lambda y: np.cos((y-self.transversal_offset)*np.pi/(self.transversal_width))*(np.abs((y-self.transversal_offset)/self.transversal_width)<=0.5)
+
+        if self.transversal_shape=='bessel':
+            self.transversal_bessel_order = 0
+            self.transversal_kill_after_first_zero = True
+            self.transversal_function = self._transversal_bessel
 
         return
 
@@ -243,7 +254,7 @@ class Source2D(Sources):
 
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
         
-        shapex = self.shape_function(-(x - (self.offset[1] + self.v*t))**2/self.pulse_width**2)
+        shapex = self.shape_function(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
 
         shapey = self.transversal_function(y)
 
@@ -259,7 +270,7 @@ class Source2D(Sources):
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
         harmonic = self.harmonic_function(self.k[0]*(x-self.offset[1]) - self.omega*t)
 
-        shape = self.transversal_function(y)*self.shape_function(-(x - (self.offset[1] + self.v*t))**2/self.pulse_width**2)
+        shape = self.transversal_function(y)*self.shape_function(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
         shape = shape*harmonic
 
         wave[0,:,:] = self.amplitude[0]*shape
@@ -268,19 +279,51 @@ class Source2D(Sources):
 
         return wave
 
-    def _off(self,x,t=0):
+    def _bessel_pulse(self,x,y,t=0):
+        from scipy.special import jn, jn_zeros
+        first_zero = jn_zeros(self.bessel_order,1)
+        
+        wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
+        
+        shapex = jn(self.bessel_order,(x - (self.offset[1] + self.v[0]*t)*(first_zero[0])/(self.pulse_width/2.0)))
+
+        if self.kill_after_first_zero:
+            shape_kill = np.abs((x - (self.offset[1] + self.v[0]*t)*(first_zero[0])/(self.pulse_width/2.0)))<=(first_zero[0])
+            shapex = shape_kill*shapex
+
+        shapey = self.transversal_function(y)
+
+        shape = shapey*shapex
+        
+        wave[0,:,:] = self.amplitude[0]*shape
+        wave[1,:,:] = self.amplitude[1]*shape
+        wave[2,:,:] = self.amplitude[2]*shape
+
+        return wave
+
+    def _off(self,x,y,t=0):
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
 
         return wave
 
-    def __init__(self,material,shape='plane',**kwargs):
+    def _transversal_bessel(self,y):
+        from scipy.special import jn, jn_zeros
+        first_zero = jn_zeros(self.transversal_bessel_order,1)
+        shape = jn(self.transversal_bessel_order,(y-self.transversal_offset)*(first_zero[0])/(self.transversal_width/2.0))
+        if self.transversal_kill_after_first_zero:
+            shape_kill = np.abs((y-self.transversal_offset)*(first_zero[0])/(self.transversal_width/2.0))<=(first_zero[0])
+            shape = shape_kill*shape
+
+        return shape
+
+    def __init__(self,material,shape='off',**kwargs):
         self._set_f_w(material,kwargs)
         self.options = {}
         self.k = np.asarray([2.0*np.pi/self.wavelength,0.0])
-        self.v = material.co/material.bkg_n.max()
+        self.v = material.co*np.asarray([1.0/material.bkg_n[0],1.0/material.bkg_n[1]])
         self.amplitude = np.asarray([0.0,material.zo,1.0])
         self.offset = np.zeros([3])
-        self.transversal_shape = 'plane'
+        self.transversal_shape = shape
         self.transversal_offset = 0.0
         self.transversal_width = 0.0
         self.transversal_function = None
