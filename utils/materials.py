@@ -450,7 +450,7 @@ class Material2D(Material):
             
             self.delta_smooth_function = self._gaussianf
             self.delta_smooth_width = 5.0
-            self.delta_smoot_length = 5.0
+            self.delta_smooth_length = 5.0
             
             self.function = self._oscillate_fiber
             
@@ -536,7 +536,7 @@ class Material2D(Material):
 
     def _gaussianf(self,x,y):
 
-        u = x - (self.delta_corner[0] + self.delta_smoot_length/2.0)
+        u = x - (self.delta_corner[0] + self.delta_smooth_length/2.0)
         v = y - (self.delta_corner[1] + self.delta_smooth_width/2.0)
 
         r2 = u**2/self.delta_length**2 + v**2/self.delta_width**2
