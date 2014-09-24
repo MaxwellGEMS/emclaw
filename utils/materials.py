@@ -197,7 +197,7 @@ class Material:
             state.aux = self.function(x,y,t)
         elif state.num_dim==3:
             x,y,z = grid._c_centers
-            state.aux = self.function(x,y,t)
+            state.aux = self.function(x,y,z,t)
         return state
 
     def __init__(self):
@@ -733,7 +733,7 @@ class Material3D(Material):
             self.fiber_length = 100.0*np.ones([2])
             self.function = self._double_fiber
 
-        if self.shape.find('fiber vibrate'):
+        if self.shape=='fiber vibrate':
             self.fiber_corner = [-5.0,0.0,0.0]
             self.fiber_width  = 5.0
             self.fiber_height = 5.0
@@ -923,7 +923,7 @@ class Material3D(Material):
 
         return eta
 
-    def _homogeneous(self,x,y,t=0):
+    def _homogeneous(self,x,y,z,t=0):
 
         eta = np.zeros( [12,x.shape[0],y.shape[1],z.shape[2]], order='F')
 
@@ -931,7 +931,7 @@ class Material3D(Material):
 
         return eta
 
-    def _single_fiber(self,x,y,t=0):
+    def _single_fiber(self,x,y,z,t=0):
 
         eta = np.zeros( [12,x.shape[0],y.shape[1],z.shape[2]], order='F')
 
@@ -947,7 +947,7 @@ class Material3D(Material):
 
         return eta
 
-    def _double_fiber(self,x,y,t=0):
+    def _double_fiber(self,x,y,z,t=0):
 
         eta = np.zeros( [12,x.shape[0],y.shape[1],z.shape[2]], order='F')
 
