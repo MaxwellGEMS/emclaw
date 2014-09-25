@@ -687,8 +687,12 @@ class Material3D(Material):
             self.function = self._homogeneous
         
         if self.shape.startswith('moving'):
-            self.velocity = np.append(0.59*np.ones([1,3]),np.zeros([1,3]),np.zeros([1,3]),axis=0)
-            self.offset   = np.append(10.0*np.ones([1,3]),np.zeros([1,3]),np.zeros([1,3]),axis=0)
+            self.velocity = np.zeros([3,6])
+            self.offset   = np.zeros([3,6])
+
+            self.velocity[0,:].fill(0.59)
+            self.offset[0,:].fill(10.0)
+
             self._moving  = True
             self.update_at_each_stage = True
 
@@ -706,9 +710,9 @@ class Material3D(Material):
 
         self.temp_flag = temp_flag
         if temp_flag:
-            self.sigma = 5.0*np.ones([3,3])
+            self.sigma = 5.0*np.ones([3,6])
             self.relative_amplitude = 0.1*np.ones([6])
-            self.delta_eta = self.relative_amplitude*self.eta
+            self.delta_eta = self.relative_amplitude*self.bkg_eta
             self.em_equal = True
 
             if not self._moving:
