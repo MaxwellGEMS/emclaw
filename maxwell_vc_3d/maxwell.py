@@ -13,7 +13,7 @@ x_lower = 0.0
 x_upper = 10.0
 
 y_lower = 0.0
-y_upper = 10.0
+y_upper = 20.0
 
 z_lower = 0.0
 z_upper = 10.0
@@ -32,7 +32,7 @@ material._calculate_n()
 source = Source3D(material,shape='pulse',wavelength=2.0)
 source.offset[1] = -5.0
 source.offset[5] = -5.0
-source.transversal_shape = 'bessel'
+source.transversal_shape = 'plane'
 source.setup()
 source.transversal_offset = [sy/2.0,sz/2.0]
 source.transversal_width = [sy/2.0,sz/2.0]
