@@ -170,7 +170,7 @@ class Material:
             state.aux = self.function(x,y,t)
         elif state.num_dim==3:
             x,y,z = grid._c_centers
-            state.aux = self.function(x,y,t)
+            state.aux = self.function(x,y,z,t)
         return state
 
     def impose_metal(self,solver,state):
