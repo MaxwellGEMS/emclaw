@@ -231,6 +231,7 @@ class Source2D(Sources):
             self.shape_function = np.exp
             self.function = self._pulse
             self.dim = 'x'
+            self.t_off = (4.0*self.pulse_width)/self.v[0]
 
         if self.shape=='harmonic pulse':
             self.pulse_width = self.wavelength
@@ -290,8 +291,12 @@ class Source2D(Sources):
 
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
         
-        shape = self.transversal_function(y)*np.exp(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
         
+        if t<=self.t_off:
+            shape = self.transversal_function(y)*np.exp(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
+        else:
+            shape = 0.0
+
         wave[0,:,:] = self.amplitude[0]*shape
         wave[1,:,:] = self.amplitude[1]*shape
         wave[2,:,:] = self.amplitude[2]*shape
@@ -300,10 +305,13 @@ class Source2D(Sources):
 
     def _harmonic_pulse(self,x,y,t=0):
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
-        harmonic = self.harmonic_function(self.k[0]*(x-self.offset[1]) - self.omega*t)
 
-        shape = self.transversal_function(y)*self.shape_function(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
-        shape = shape*harmonic
+        if t<=self.t_off:
+            harmonic = self.harmonic_function(self.k[0]*(x-self.offset[1]) - self.omega*t)
+            shape = self.transversal_function(y)*self.shape_function(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
+            shape = shape*harmonic
+        else:
+            shape = 0.0
 
         wave[0,:,:] = self.amplitude[0]*shape
         wave[1,:,:] = self.amplitude[1]*shape
