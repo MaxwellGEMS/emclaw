@@ -446,7 +446,8 @@ class Material2D(Material):
             self.delta_eta    = np.ones([3])
             self.delta_smooth = False
             self.delta_omega  = 2.0*np.pi
-            self.delta_function = np.cos
+            self.delta_function    = np.cos
+            self.delta_function_dt = np.sin
             
             self.delta_smooth_function = self._gaussianf
             self.delta_smooth_width = 5.0
@@ -652,10 +653,14 @@ class Material2D(Material):
 
         if not self.delta_smooth:
             w = self.delta_function(self.delta_omega*t)*spand
+            d = self.delta_omega*self.delta_function_dt(self.delta_omega*t)*spand
         else:
             w = self.delta_function(self.delta_omega*t)*self.delta_smooth_function(x,y)*spand
+            d = self.delta_omega*self.delta_function_dt(self.delta_omega*t)*self.delta_smooth_function(x,y)*spand
 
-        for i in range(0,3): eta[i] = self.bkg_eta[i] + self.fiber_eta[i]*span + self.delta_eta[i]*w
+        for i in range(0,3): 
+            eta[i]   = self.bkg_eta[i] + self.fiber_eta[i]*span + self.delta_eta[i]*w
+            eta[i+3] = -1.0*self.delta_eta[i]*d
 
         return eta
 

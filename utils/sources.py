@@ -253,10 +253,10 @@ class Source2D(Sources):
             self.transversal_function = lambda y: 1.0
 
         if self.transversal_shape=='gauss':
-            self.transversal_function = lambda y: np.exp(-(y - self.transversal_offset)**2/self.transversal_width**2)
+            self.transversal_function = lambda y: self._transversal_gauss(y)
 
         if self.transversal_shape=='cosine':
-            self.transversal_function = lambda y: np.cos((y-self.transversal_offset)*np.pi/(self.transversal_width))*(np.abs((y-self.transversal_offset)/self.transversal_width)<=0.5)
+            self.transversal_function = lambda y: self._transversal_cosine(y)
 
         if self.transversal_shape=='bessel':
             self.transversal_bessel_order = 0
@@ -264,6 +264,16 @@ class Source2D(Sources):
             self.transversal_function = self._transversal_bessel
 
         return
+
+    def _transversal_cosine(self,u):
+        r = (u-self.transversal_offset)/self.transversal_width
+        shape = np.cos(r*np.pi)*(np.abs(r)<=0.5)
+        return shape
+
+    def _transversal_gauss(self,u):
+        r = (u - self.transversal_offset)**2/self.transversal_width**2
+        shape = np.exp(-r)
+        return shape
 
     def _plane(self,x,y,t=0):
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
@@ -280,11 +290,7 @@ class Source2D(Sources):
 
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
         
-        shapex = self.shape_function(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
-
-        shapey = self.transversal_function(y)
-
-        shape = shapey*shapex
+        shape = self.transversal_function(y)*np.exp(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
         
         wave[0,:,:] = self.amplitude[0]*shape
         wave[1,:,:] = self.amplitude[1]*shape
