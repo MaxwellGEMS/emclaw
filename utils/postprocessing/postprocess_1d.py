@@ -2,7 +2,7 @@ import os
 from glob import glob
 import numpy as np
 import matplotlib
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import colorConverter
@@ -118,7 +118,7 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
     if poynting: S_map_temp = []
     if poly_verts: verts = []
     
-    sampled = np.zeros([len(frame_plot_range),7])
+    sampled = np.zeros([len(frame_plot_range),12])
     
     # load the frames and assemble values
     for f,frame in enumerate(frame_plot_range):
@@ -133,7 +133,14 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
             Q_map_temp = np.append(Q_map_temp,qn)
 
         sampled[f,0] = solution.t
-        sampled[f,1] = x[q[0]==q[0].max()][0]
+        if len(x[q[0]==q[0].max()])==1:
+            it = np.sqrt(q[0]**2 + q[1]**2)
+            # print x[np.where(it==it.max())]
+            sampled[f,1] = x[np.where(it==it.max())]
+
+        if len(x[q[0]==q[0].max()])>=2:
+            sampled[f,1] = x[q[0]==q[0].max()][-1]
+            print len(x[q[0]==q[0].max()])
         sampled[f,3] = q[0].max()
         sampled[f,4] = q[1].max()
 
@@ -168,7 +175,7 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
 
     return Q,num_frames,derived_quantities
 
-def postprocess_1d(outdir='./_output',multiple=False,overwrite=False,sampling=5,velocity=True,save_mat=True):
+def postprocess_1d(outdir='./_output',multiple=False,overwrite=False,sampling=5,velocity=True,save_mat=True,poly=False):
     if multiple:
         outdir = outdir+'*'
 
@@ -177,10 +184,13 @@ def postprocess_1d(outdir='./_output',multiple=False,overwrite=False,sampling=5,
 
     for dirs in outdirs:
         print dirs
-        
-        figspath = os.path.join(dirs,'_figures')
+        figspath = os.path.join('/simdesk/sandbox/emclaw/results/1D/nl-test','_figures')
         binpath  = os.path.join(dirs,'_bin')
-
+        base_name_dir = dirs.split('_')
+        print base_name_dir
+        base_name = base_name_dir[3]+'_'+base_name_dir[4]+'_'#base_name_dir[-1]+'_' #base_name_dir[3]+'_'+base_name_dir[4]+'_'
+        print base_name
+        figspath = os.path.join('/simdesk/sandbox/emclaw/results/1D/nl-test',base_name_dir[3])
         if not os.path.exists(figspath): os.makedirs(figspath)
         if not os.path.exists(binpath): os.makedirs(binpath)
         
@@ -191,38 +201,105 @@ def postprocess_1d(outdir='./_output',multiple=False,overwrite=False,sampling=5,
         x = derived_quantities['x']
         sampled = derived_quantities['sampled']
 
-        waterfall_plot(Q[:,0,:],x,sampling=sampling,cmap=colores,num_colors=num_frames,outdir=figspath,outname='waterfall_q0_s'+str(sampling),
-                cbar_label='$|q^0|\quad (a.u.)$')
-        waterfall_plot(Q[:,1,:],x,sampling=sampling,cmap=colores,num_colors=num_frames,outdir=figspath,outname='waterfall_q1_s'+str(sampling),
-                cbar_label='$|q^1|\quad (a.u.)$')
+        waterfall_plot(Q[:,0,:],x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_q0',
+                cbar_label='$|q^0|_{max}\quad (a.u.)$')
+        waterfall_plot(Q[:,1,:],x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_q1',
+                cbar_label='$|q^1|_{max}\quad (a.u.)$')
+        #waterfall_plot(Q[:,1,:]*Q[:,0,:],x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_s',
+        #        cbar_label='$|S|_{max}\quad (a.u.)$')
+        waterfall_plot(np.sqrt(Q[:,1,:]**2 + Q[:,0,:]**2),x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_i',
+                cbar_label='$I_{max}\quad (a.u.)$')
 
-        view_angles = [18,240,0,270,10,270,18,80]
-        view_angles = np.reshape(view_angles,(len(view_angles)/2,2))
-        poly_plot(verts=derived_quantities['vertices'],sampled=derived_quantities['sampled'],
-                cmap=colores,outdir=figspath,view_angles=view_angles,sampling=sampling)
+        if poly:
+            view_angles = [18,240,0,270,10,270,18,80]
+            view_angles = np.reshape(view_angles,(len(view_angles)/2,2))
+            poly_plot(verts=derived_quantities['vertices'],sampled=derived_quantities['sampled'],
+                    cmap=colores,outdir=figspath,view_angles=view_angles,sampling=5,outname=base_name+'vert_')
 
         # calculate velocity
         if velocity:
             sampled = derived_quantities['sampled']
-            sampled[1:,2] = (sampled[1:,1]-sampled[:-1,1])/(sampled[1:,0]-sampled[:-1,0])
-            sampled = sampled[1::sampling,:]
+            sampled[:,2] = np.gradient(sampled[:,1],sampled[2,0]-sampled[1,0])
+            sampled[:,7] = np.sqrt(sampled[:,3]**2 + sampled[:,4]**2)
+            sampled[:,8] = np.gradient(sampled[:,7],sampled[2,0]-sampled[1,0])
+            sampled[:,9] = sampled[:,3]*sampled[:,4]
+            sampled[:,10] = np.gradient(sampled[:,9],sampled[2,0]-sampled[1,0])
 
-            plt.figure()
-            f, axarr = plt.subplots(2, 1,sharex=True)
-            axarr[0].plot(sampled[:,0],sampled[:,3],'o:')
-            axarr[0].set_ylabel('$q_{max}\quad (a.u.)$')
-            axarr[1].plot(sampled[1:,0],sampled[1:,2],'o:')
-            axarr[1].set_ylabel('$v\quad (a.u.)$')
-            axarr[1].set_xlabel('time $t\quad (ct)^{-1}$')
-            
-            plt.draw()
-            fig_name = 'velocity'
-            plt.savefig(os.path.join(figspath,fig_name+'.eps'),format='eps',dpi=320,bbox_inches='tight')
-            plt.close()
+
+            tt = sampled[6::sampling,0]
+            dt = tt[1] - tt[0]
+            dx = np.gradient(sampled[6::sampling,1],dt)
+            di = np.gradient(sampled[6::sampling,8],dt)
+            ds = np.gradient(sampled[6::sampling,10],dt)
+
+            plot_together(sampled[6::sampling,0],sampled[6::sampling,1],sampled[6::sampling,2],
+                y1label='$x_{max}\quad (a.u.)$',y2label='$dx_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'xmax')
+
+            plot_together(sampled[6::sampling,0],sampled[6::sampling,7],sampled[6::sampling,8],
+                y1label='$I_{max}\quad (a.u.)$',y2label='$dI_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'imax')
+
+            plot_together(sampled[6::sampling,0],sampled[6::sampling,9],sampled[6::sampling,10],
+                y1label='$|S|_{max}\quad (a.u.)$',y2label='$d|S|_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'smax')
+
+            plot_single(sampled[6::sampling,0],sampled[6::sampling,1],ylabel='$x_{max}\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'x')
+
+            plot_single(sampled[6::sampling,0],sampled[6::sampling,2],ylabel='$dx_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'dxdt')
+
+            plot_single(sampled[6::sampling,0],sampled[6::sampling,7],ylabel='$dI\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'i')
+
+            plot_single(sampled[6::sampling,0],sampled[6::sampling,8],ylabel='$dI_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'didt')
+
+            plot_single(sampled[6::sampling,0],sampled[6::sampling,9],ylabel='$|S|_{max}\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'s')
+
+            plot_single(sampled[6::sampling,0],sampled[6::sampling,10],ylabel='$d|S|_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'dsdt')
+
+            plot_single(tt,dx,ylabel='$dx_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'dxdt_bis')
+
+            plot_single(tt,di,ylabel='$di_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'didt_bis')
+
+            plot_single(tt,ds,ylabel='$ds_{max}/dt\quad (a.u.)$',
+                figspath=figspath,figname=base_name+'dsdt_bis')
 
         if save_mat:
             summary={'Q':Q,'derived':derived_quantities}
-            savemat(os.path.join(figspath,'summary'),summary)
+            savemat(os.path.join(figspath,base_name+'summary'),summary)
+
+def plot_together(x,y1,y2,xlabel='time $t\quad (ct)^{-1}$',y1label='y1',y2label='y2',shape='.:',figspath='./_output',figname='figure'):
+        plt.close('all')
+        plt.figure()
+        f, axarr = plt.subplots(2, 1,sharex=True)
+        axarr[0].plot(x,y1,shape)
+        axarr[0].set_ylabel(y1label)
+        axarr[1].plot(x,y2,shape)
+        axarr[1].set_ylabel(y2label)
+        axarr[1].set_xlabel(xlabel)
+
+        plt.draw()
+        plt.savefig(os.path.join(figspath,figname+'.eps'),format='eps',dpi=320,bbox_inches='tight')
+        plt.close()
+
+def plot_single(x,y,xlabel='time $t\quad (ct)^{-1}$',ylabel='y',shape='.:',figspath='./_output',figname='figure'):
+        plt.close('all')
+        plt.figure()
+        f, axarr = plt.subplots(1, 1,sharex=True)
+        axarr.plot(x,y,shape)
+        axarr.set_ylabel(ylabel)
+        axarr.set_xlabel(xlabel)
+
+        plt.draw()
+        plt.savefig(os.path.join(figspath,figname+'.eps'),format='eps',dpi=320,bbox_inches='tight')
+        plt.close()
 
 if __name__ == "__main__":
     from clawpack.pyclaw import util
