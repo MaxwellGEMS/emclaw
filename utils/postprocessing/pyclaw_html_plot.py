@@ -29,7 +29,7 @@ def main_plot(outdir='./_output',multiple=False,overwrite=False):
     print outdirs
     for dirs in outdirs:
         print dirs
-        if not os.path.exists(os.path.join(outdir,'_plots')):
+        if overwrite or not os.path.exists(os.path.join(outdir,'_plots')):
             plot.html_plot(outdir=dirs)
             copy('./_plots',os.path.join(dirs,'_plots'))
             shutil.rmtree('./_plots')
