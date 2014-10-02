@@ -110,8 +110,8 @@ subroutine tfluct2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,a
             amdq2(2,i) = df2/kappa2
             amdq2(3,i) = df3/kappa3
         else
-            df1 = dq3/vac1 - dy*psi1
-            df3 = dq1/vac3 - dy*psi3
+            df1 = -dq3/vac1 - dy*psi1
+            df3 = -dq1/vac3 - dy*psi3
             
             amdq2(1,i) = df1/kappa1
             amdq2(2,i) = 0.d0

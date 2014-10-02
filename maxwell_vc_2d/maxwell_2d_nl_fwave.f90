@@ -61,10 +61,13 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
     double precision :: etat1i, etat1im, etat2i, etat2im, etat3i, etat3im
     double precision :: kappa1, kappa2, kappa3, zo, co, dx, dy
     double precision :: vac1, vac2, vac3
-    double precision :: ci, cim, zi, zim
+    double precision :: c, z
     double precision :: chi2(3), chi3(3)
 
     common /cparam/  dx, dy, chi2, chi3, co, zo, vac1, vac2, vac3
+
+    c = zo
+    z = zo
 
 !   split the jump in q at each interface into waves
 !    print*, num_waves,num_eqn,num_ghost
@@ -89,11 +92,6 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
         q3i     = ql(3,i)
         q3im    = qr(3,i-1)
 
-        ci      = co 
-        cim     = co
-        zi      = zo
-        zim     = zo
-
         dq1 = (q1i - q1im)
         dq2 = (q2i - q2im)
         dq3 = (q3i - q3im)
@@ -105,31 +103,31 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
         if (ixy==1) then
             df2 = dq3/vac2
             df3 = dq2/vac3
-            b1 = (df3*zi - df2)/(zi+zim)
+            b1 = (-df2 + df3*z)/(2.0d0*z)
             b2 = 0.d0
-            b3 = (df3*zim + df2)/(zi+zim)
+            b3 = (df2 + df3*z)/(2.0d0*z)
             fwave(1,1,i) = 0.d0
-            fwave(2,1,i) = b1*(-zim)/kappa2
+            fwave(2,1,i) = b1*(-z)/kappa2
             fwave(3,1,i) = b1/kappa3
             fwave(1,2,i) = 0.d0
-            fwave(2,2,i) = b3*(zi)/kappa2
+            fwave(2,2,i) = b3*(z)/kappa2
             fwave(3,2,i) = b3/kappa3
-            s(1,i) = -cim
-            s(2,i) = ci 
+            s(1,i) = -c
+            s(2,i) = c
         else
             df1 = dq3/vac1
             df3 = dq1/vac3
-            b1 = -1.d0*(df1 + df3*zi)/(zi+zim)
+            b1 = -(df1 + df3*z)/(2.0d0*z)
             b2 = 0.d0
-            b3 = (df1 - df3*zim)/(zi+zim)
-            fwave(1,1,i) = b1*(zim)/kappa1
+            b3 = (df1 - df3*z)/(2.0d0*z)
+            fwave(1,1,i) = b1*(z)/kappa1
             fwave(2,1,i) = 0.d0
             fwave(3,1,i) = b1/kappa3
-            fwave(1,2,i) = b3*(-zi)/kappa1
+            fwave(1,2,i) = b3*(-z)/kappa1
             fwave(2,2,i) = 0.d0
             fwave(3,2,i) = b3/kappa3
-            s(1,i) = -cim
-            s(2,i) = ci 
+            s(1,i) = -c
+            s(2,i) = c
         endif   
     enddo
 
