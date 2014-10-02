@@ -1,6 +1,28 @@
 import numpy as np
 
+
+heading = {}
+heading['xyz'] = [0,1,2]
+heading['xy' ] = [0,1]
+heading['xz' ] = [0,2]
+heading['yz' ] = [1,2]
+heading['x'  ] = [0]
+heading['y'  ] = [1]
+heading['z'  ] = [2]
+
+polarization = {}
+polarization['xyz'] = [0,1,2]
+polarization['xy' ] = [1,0]
+polarization['xz' ] = [2,0]
+polarization['yz' ] = [2,1]
+polarization['x'  ] = [1]
+polarization['y'  ] = [0]
+polarization['z'  ] = [0]
+
 def user_source():
+    pass
+
+def user_transversal_source():
     pass
 
 class Sources:
@@ -27,7 +49,7 @@ class Sources:
         else:
             msg = 'You must define either wavelength or frequency'
             print msg
-    
+
     def set_plane(self):
         self.shape = 'plane'
         self.setup()
@@ -53,34 +75,36 @@ class Sources:
         return
 
     def init(self,state):
+        state.q.fill(0.0)
+
         if self.shape=='off':
+
+            dimh = heading[self.heading]
+            dimp = polarization[self.heading]
+
             grid = state.grid
+
             if state.num_dim==1:
                 x = grid.x.centers
                 waveshape = np.exp(-(x-self.offset)**2/(self.pulse_width**2))
                 state.q[0,:] = self._material.zo*waveshape
                 state.q[1,:] = waveshape
+            if state.num_dim>=2:
+                _r = 0.0
+                for i in range(len(self.heading)):
+                    _r = _r + (grid.c_centers[dimh[i]] - self.offset[dimp[i]])**2/self.pulse_width**2
 
-            if state.num_dim==2:
-                x,y = grid.c_centers
-                waveshape = np.exp(-(x-self.offset[1])**2/(self.pulse_width**2))
-                state.q[0,:,:] = 0.0
-                state.q[1,:,:] = self._material.zo*waveshape
-                state.q[2,:,:] = waveshape
+                waveshape = np.exp(-_r)
 
-            if state.num_dim==3:
-                x,y,z = grid.c_centers
-                waveshape = np.exp(-(x-self.offset[1])**2/(self.pulse_width**2))
-                state.q[:,:,:,:] = 0.0
-                state.q[1,:,:,:] = self._material.zo*waveshape
-                state.q[5,:,:,:] = waveshape
-        else:
-            if state.num_dim==1:
-                state.q[:,:] = 0.0
-            elif state.num_dim==2:
-                state.q[:,:,:] = 0.0
-            elif state.num_dim==3:
-                state.q[:,:,:,:] = 0.0
+                if len(self.heading)==1:
+                    state.q[dimp[0],:,:] = ((-1.0)**dimh[0])*self._material.zo*waveshape
+                
+                if state.num_dim==2: p=2
+                if state.num_dim==3: p=5
+                
+                state.q[p,:,:] = waveshape
+
+                
 
         return state
 
@@ -230,7 +254,7 @@ class Source2D(Sources):
             self.pulse_width = self.wavelength
             self.shape_function = np.exp
             self.function = self._pulse
-            self.dim = 'x'
+            self.heading = 'x'
             self.t_off = (4.0*self.pulse_width)/self.v[0]
 
         if self.shape=='harmonic pulse':
@@ -238,7 +262,7 @@ class Source2D(Sources):
             self.harmonic_function = np.sin
             self.shape_function = np.exp
             self.function = self._harmonic_pulse
-            self.dim = 'x'
+            self.heading = 'x'
 
         if self.shape=='bessel pulse':
             self.pulse_width = self.wavelength
@@ -265,6 +289,10 @@ class Source2D(Sources):
             self.transversal_function = self._transversal_bessel
 
         return
+
+    def _trasversal_plane(self,u):
+        shape = 1.0
+        return shape
 
     def _transversal_cosine(self,u):
         r = (u-self.transversal_offset)/self.transversal_width
@@ -363,13 +391,14 @@ class Source2D(Sources):
         self.v = material.co*np.asarray([1.0/material.bkg_n[0],1.0/material.bkg_n[1]])
         self.amplitude = np.asarray([0.0,material.zo,1.0])
         self.offset = np.zeros([3])
-        self.transversal_shape = shape
+        self.transversal_shape = 'plane'
         self.transversal_offset = 0.0
         self.transversal_width = 0.0
-        self.transversal_function = None
+        self.transversal_function = lambda y: 1.0
         self.shape = shape
         self.custom = False
         self.function = None
+        self.heading = 'x'
         self._material = material
 
 class Source3D(Sources):
@@ -391,14 +420,14 @@ class Source3D(Sources):
             self.pulse_width = self.wavelength
             self.shape_function = np.exp
             self.function = self._pulse
-            self.dim = 'x'
+            self.heading = 'x'
 
         if self.shape=='harmonic pulse':
             self.pulse_width = self.wavelength
             self.harmonic_function = np.sin
             self.shape_function = np.exp
             self.function = self._harmonic_pulse
-            self.dim = 'x'
+            self.heading = 'x'
 
         if self.shape=='bessel pulse':
             self.pulse_width = self.wavelength
