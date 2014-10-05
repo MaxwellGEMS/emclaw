@@ -529,7 +529,7 @@ class Material2D(Material):
             for i in range(0,3):
                 _temp2 = y - self.offset[1,i] - self.delta_velocity[1,i]*t
                 _r2[i] = _r2[i] + (_temp2/self.delta_sigma[1,i])**2
-                _rt[i] = _rt[i] + (_temp1*self.delta_velocity[1,i])/(self.delta_sigma[1,i]**2)
+                _rt[i] = _rt[i] + (_temp2*self.delta_velocity[1,i])/(self.delta_sigma[1,i]**2)
 
         _r2 = np.exp(-_r2)
         _rt = 2.0*_r2*_rt
