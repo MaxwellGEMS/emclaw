@@ -108,8 +108,8 @@ subroutine tfluct3(ixyz,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,
 
         if (ixyz == 1) then
             df2 = dq6/eo - dx*psi2
-            df3 = dq5/eo - dx*psi3
-            df5 = dq3/mo - dx*psi5
+            df3 = -dq5/eo - dx*psi3
+            df5 = -dq3/mo - dx*psi5
             df6 = dq2/mo - dx*psi6
 
             amdq2(2,i) = df2/kappa2
@@ -118,10 +118,10 @@ subroutine tfluct3(ixyz,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,
             amdq2(6,i) = df6/kappa6
 
         else if (ixyz == 2) then
-            df1 = dq6/eo - dy*psi1
+            df1 = -dq6/eo - dy*psi1
             df3 = dq4/eo - dy*psi3
             df4 = dq3/mo - dy*psi4
-            df6 = dq1/mo - dy*psi6
+            df6 = -dq1/mo - dy*psi6
 
             amdq2(1,i) = df1/kappa1
             amdq2(3,i) = df3/kappa3
@@ -130,8 +130,8 @@ subroutine tfluct3(ixyz,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,
 
         else if (ixyz == 3) then
             df1 = dq5/eo - dz*psi1
-            df2 = dq4/eo - dz*psi2
-            df4 = dq2/mo - dz*psi4
+            df2 = -dq4/eo - dz*psi2
+            df4 = -dq2/mo - dz*psi4
             df5 = dq1/mo - dz*psi5
 
             amdq2(1,i) = df1/kappa1
