@@ -165,12 +165,15 @@ class Material:
         if state.num_dim==1:
             x = grid.x.centers
             state.aux = self.function(x,t)
-        elif state.num_dim==2:
+
+        if state.num_dim==2:
             x,y = grid._c_centers
             state.aux = self.function(x,y,t)
-        elif state.num_dim==3:
+
+        if state.num_dim==3:
             x,y,z = grid._c_centers
             state.aux = self.function(x,y,z,t)
+
         return state
 
     def impose_metal(self,solver,state):
@@ -192,10 +195,10 @@ class Material:
         if state.num_dim==1:
             x = grid.x.centers
             state.aux = self.function(x,t)
-        elif state.num_dim==2:
+        if state.num_dim==2:
             x,y = grid._c_centers
             state.aux = self.function(x,y,t)
-        elif state.num_dim==3:
+        if state.num_dim==3:
             x,y,z = grid._c_centers
             state.aux = self.function(x,y,z,t)
         return state
@@ -219,8 +222,8 @@ class Material1D(Material):
             self.function = self._homogeneous
         
         if self.shape.startswith('moving'):
-            self.velocity_e = 0.59
-            self.velocity_m = self.velocity_e
+            self.delta_velocity_e = 0.59
+            self.delta_velocity_m = self.delta_velocity_e
             self.offset_e   = 10.0
             self.offset_m   = self.offset_e
             self._moving    = True
@@ -275,12 +278,12 @@ class Material1D(Material):
                 
         eta = np.zeros( [4,len(x)], order='F')
 
-        u_x_e = x - self.velocity_e*t - self.offset_e
-        u_x_m = x - self.velocity_m*t - self.offset_m
+        u_x_e = x - self.delta_velocity_e*t - self.offset_e
+        u_x_m = x - self.delta_velocity_m*t - self.offset_m
         u_e = (u_x_e/self.sigma_e)**2
         u_m = (u_x_m/self.sigma_m)**2
-        u_e_t = 2.0*((self.velocity_e*u_x_e)/(self.sigma_e**2))
-        u_m_t = 2.0*((self.velocity_m*u_x_m)/(self.sigma_m**2))
+        u_e_t = 2.0*((self.delta_velocity_e*u_x_e)/(self.sigma_e**2))
+        u_m_t = 2.0*((self.delta_velocity_m*u_x_m)/(self.sigma_m**2))
 
         eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_er
         eta[1,:] = self.delta_m*np.exp(-u_m) + self.bkg_mr
@@ -333,13 +336,13 @@ class Material1D(Material):
         
         eta = np.zeros( [4,len(x)], order='F')
 
-        u_x_e = (x - self.velocity_e*t - self.offset_e)/self.sigma_e
-        u_x_m = (x - self.velocity_m*t - self.offset_m)/self.sigma_m
+        u_x_e = (x - self.delta_velocity_e*t - self.offset_e)/self.sigma_e
+        u_x_m = (x - self.delta_velocity_m*t - self.offset_m)/self.sigma_m
 
         eta[0,:] = (self.delta_e/2.0)*(1.0 + np.tanh(u_x_e)) + self.bkg_er
         eta[1,:] = (self.delta_m/2.0)*(1.0 + np.tanh(u_x_m)) + self.bkg_mr
-        eta[2,:] = -(self.delta_e*self.velocity_e/(2.0*self.sigma_e))/(np.cosh(u_x_e)**2)
-        eta[3,:] = -(self.delta_m*self.velocity_m/(2.0*self.sigma_m))/(np.cosh(u_x_m)**2)
+        eta[2,:] = -(self.delta_e*self.delta_velocity_e/(2.0*self.sigma_e))/(np.cosh(u_x_e)**2)
+        eta[3,:] = -(self.delta_m*self.delta_velocity_m/(2.0*self.sigma_m))/(np.cosh(u_x_m)**2)
 
         return eta
 
@@ -391,9 +394,9 @@ class Material2D(Material):
             self.function = self._homogeneous
         
         if self.shape.startswith('moving'):
-            self.velocity = np.append(0.59*np.ones([1,3]),np.zeros([1,3]),axis=0)
-            self.offset   = np.append(10.0*np.ones([1,3]),np.zeros([1,3]),axis=0)
-            self._moving    = True
+            self.delta_velocity = np.append(0.59*np.ones([1,3]),np.zeros([1,3]),axis=0)
+            self.offset  = np.append(10.0*np.ones([1,3]),np.zeros([1,3]),axis=0)
+            self._moving = True
             self.update_at_each_stage = True
 
             if 'gauss' in self.shape:
@@ -506,7 +509,7 @@ class Material2D(Material):
                 
         eta = np.zeros( [6,x.shape[0],y.shape[1]], order='F')
         _r2 = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
-        _rt = _r2
+        _rt = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
 
         u = v = False
 
@@ -517,17 +520,19 @@ class Material2D(Material):
         if self.dim=='xy': u = v = True
 
         if u:
-            for i in range(0,3): 
-                _r2[i] = ((x - self.offset[0,i] - self.velocity[0,i]*t)/self.delta_sigma[0,i])**2
-                _rt[i] = 2.0*(self.velocity[0,i]*_r2[i])/(self.delta_sigma[0,i]**2)
+            for i in range(0,3):
+                _temp1 = x - self.offset[0,i] - self.delta_velocity[0,i]*t
+                _r2[i] = (_temp1/self.delta_sigma[0,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[0,i])/(self.delta_sigma[0,i]**2)
 
         if v:
             for i in range(0,3):
-                _temp  = ((y - self.offset[1,i] - self.velocity[1,i]*t)/self.delta_sigma[1,i])**2
-                _rt[i] = _rt[i] + 2.0*(self.velocity[1,i]*_temp)/(self.delta_sigma[1,i]**2)
-                _r2[i] = _r2[i] + _temp
+                _temp2 = y - self.offset[1,i] - self.delta_velocity[1,i]*t
+                _r2[i] = _r2[i] + (_temp2/self.delta_sigma[1,i])**2
+                _rt[i] = _rt[i] + (_temp1*self.delta_velocity[1,i])/(self.delta_sigma[1,i]**2)
+
         _r2 = np.exp(-_r2)
-        _rt = _r2*_rt
+        _rt = 2.0*_r2*_rt
 
         for i in range(0,3):
             eta[i  ] = self.delta_eta[i]*_r2[i] + self.bkg_eta[i]
@@ -583,11 +588,11 @@ class Material2D(Material):
         if self.dim=='xy': u = v = True
 
         if u:
-            for i in range(0,3): _r2[i] = (x - self.velocity[0,i] - self.offset[0,i])/self.delta_sigma[0,i]
-            _rt = self.velocity[0,:]/(2.0*self.delta_sigma[0,:])
+            for i in range(0,3): _r2[i] = (x - self.delta_velocity[0,i] - self.offset[0,i])/self.delta_sigma[0,i]
+            _rt = self.delta_velocity[0,:]/(2.0*self.delta_sigma[0,:])
         if v:
-            for i in range(0,3): _r2[i] = _r2[i] + (y - self.velocity[1,i] - self.offset[1,i])/self.delta_sigma[1,i]
-            _rt = _rt + self.velocity[1,:]/(2.0*self.delta_sigma[1,:])
+            for i in range(0,3): _r2[i] = _r2[i] + (y - self.delta_velocity[1,i] - self.offset[1,i])/self.delta_sigma[1,i]
+            _rt = _rt + self.delta_velocity[1,:]/(2.0*self.delta_sigma[1,:])
 
         for i in range(0,3):
             eta[i]   = (self.delta_eta[i]/2.0)*(1.0 + np.tanh(_r2[i])) + self.bkg_eta[i]
@@ -692,10 +697,10 @@ class Material3D(Material):
             self.function = self._homogeneous
         
         if self.shape.startswith('moving'):
-            self.velocity = np.zeros([3,6])
+            self.delta_velocity = np.zeros([3,6])
             self.offset   = np.zeros([3,6])
 
-            self.velocity[0,:].fill(0.59)
+            self.delta_velocity[0,:].fill(0.59)
             self.offset[0,:].fill(10.0)
 
             self._moving  = True
@@ -810,36 +815,38 @@ class Material3D(Material):
         grid = [x,y,z]
         eta = np.zeros( [12,x.shape[0],y.shape[1],z.shape[2]], order='F')
         _r2 = np.zeros( [ 6,x.shape[0],y.shape[1],z.shape[2]], order='F')
-        _rt = _r2
+        _rt = np.zeros( [ 6,x.shape[0],y.shape[1],z.shape[2]], order='F')
 
         dims = dim[self.dim]
 
         if len(self.dim)==1:
             p = dims[0]
-            for i in range(0,6): 
-                _r2[i] = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])**2
-                _rt[i] = 2.0*(self.velocity[p,i]*_r2[i])/(self.sigma[p,i]**2)
+            for i in range(0,6):
+                _temp1 = grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t
+                _r2[i] = (_temp1/self.sigma[p,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.sigma[p,i]**2)
 
         if len(self.dim)==2:
             p,q = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])**2
-                _temp2 = ((grid[q] - self.offset[q,i] - self.velocity[q,i]*t)/self.sigma[q,i])**2
-                _rt[i] = 2.0*(self.velocity[p,i]*_temp1)/(self.sigma[p,i]**2) + 2.0*(self.velocity[q,i]*_temp2)/(self.sigma[q,i]**2)
-                _r2[i] = _temp1 + _temp2
+                _temp1 = grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t
+                _temp2 = grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t
+                _r2[i] = (_temp1/self.sigma[p,i])**2 + (_temp2/self.sigma[q,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.sigma[p,i]**2) + \
+                    (_temp2*self.delta_velocity[q,i])/(self.sigma[q,i]**2)
 
         if len(self.dim)==3:
             p,q,r = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])**2
-                _temp2 = ((grid[q] - self.offset[q,i] - self.velocity[q,i]*t)/self.sigma[q,i])**2
-                _temp3 = ((grid[r] - self.offset[r,i] - self.velocity[r,i]*t)/self.sigma[r,i])**2
-                _rt[i] = 2.0*(self.velocity[p,i]*_temp1)/(self.sigma[p,i]**2) + 2.0*(self.velocity[q,i]*_temp2)/(self.sigma[q,i]**2) + 2.0*(self.velocity[r,i]*_temp3)/(self.sigma[r,i]**2)
-                _r2[i] = _temp1 + _temp2 + _temp3
-
-
+                _temp1 = grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t
+                _temp2 = grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t
+                _temp3 = grid[r] - self.offset[r,i] - self.delta_velocity[r,i]*t
+                _r2[i] = (_temp1/self.sigma[p,i])**2 + (_temp2/self.sigma[q,i])**2 + (_temp3/self.sigma[r,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.sigma[p,i]**2) + \
+                    (_temp2*self.delta_velocity[q,i])/(self.sigma[q,i]**2) + \
+                    (_temp3*self.delta_velocity[r,i])/(self.sigma[r,i]**2)
         _r2 = np.exp(-_r2)
-        _rt = _r2*_rt
+        _rt = 2.0*_r2*_rt
 
         for i in range(0,6):
             eta[i  ] = self.delta_eta[i]*_r2[i] + self.bkg_eta[i]
@@ -869,21 +876,21 @@ class Material3D(Material):
         if len(self.dim)==1:
             p = dims[0]
             for i in range(0,6): 
-                _r2[i] = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])**2
+                _r2[i] = ((grid[p] - self.offset[p,i])/self.sigma[p,i])**2
 
         if len(self.dim)==2:
             p,q = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])**2
-                _temp2 = ((grid[q] - self.offset[q,i] - self.velocity[q,i]*t)/self.sigma[q,i])**2
+                _temp1 = ((grid[p] - self.offset[p,i])/self.sigma[p,i])**2
+                _temp2 = ((grid[q] - self.offset[q,i])/self.sigma[q,i])**2
                 _r2[i] = _temp1 + _temp2
 
         if len(self.dim)==3:
             p,q,r = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])**2
-                _temp2 = ((grid[q] - self.offset[q,i] - self.velocity[q,i]*t)/self.sigma[q,i])**2
-                _temp3 = ((grid[r] - self.offset[r,i] - self.velocity[r,i]*t)/self.sigma[r,i])**2
+                _temp1 = ((grid[p] - self.offset[p,i])/self.sigma[p,i])**2
+                _temp2 = ((grid[q] - self.offset[q,i])/self.sigma[q,i])**2
+                _temp3 = ((grid[r] - self.offset[r,i])/self.sigma[r,i])**2
                 _r2[i] = _temp1 + _temp2 + _temp3
 
         _r2 = np.exp(-_r2)
@@ -903,24 +910,27 @@ class Material3D(Material):
         if len(self.dim)==1:
             p = dims[0]
             for i in range(0,6):
-                _r2[i] = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])
-                _rt[i] = self.velocity[p,i]/(2.0*self.sigma[p,i]**2)
+                _r2[i] = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.sigma[p,i])
+                _rt[i] = self.delta_velocity[p,i]/(2.0*self.sigma[p,i]**2)
 
         if len(self.dim)==2:
             p,q = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])
-                _temp2 = ((grid[q] - self.offset[q,i] - self.velocity[q,i]*t)/self.sigma[q,i])
-                _rt[i] = self.velocity[p,i]/(2.0*self.sigma[p,i]) + self.velocity[q,i]/(2.0*self.sigma[q,i])
+                _temp1 = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.sigma[p,i])
+                _temp2 = ((grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t)/self.sigma[q,i])
+                _rt[i] = self.delta_velocity[p,i]/(2.0*self.sigma[p,i]) + \
+                    self.delta_velocity[q,i]/(2.0*self.sigma[q,i])
                 _r2[i] = _temp1 + _temp2
 
         if len(self.dim)==2:
             p,q,r = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.velocity[p,i]*t)/self.sigma[p,i])
-                _temp2 = ((grid[q] - self.offset[q,i] - self.velocity[q,i]*t)/self.sigma[q,i])
-                _temp3 = ((grid[r] - self.offset[r,i] - self.velocity[r,i]*t)/self.sigma[r,i])
-                _rt[i] = self.velocity[p,i]/(2.0*self.sigma[p,i]**2) + self.velocity[q,i]/(2.0*self.sigma[q,i]) + self.velocity[r,i]/(2.0*self.sigma[r,i])
+                _temp1 = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.sigma[p,i])
+                _temp2 = ((grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t)/self.sigma[q,i])
+                _temp3 = ((grid[r] - self.offset[r,i] - self.delta_velocity[r,i]*t)/self.sigma[r,i])
+                _rt[i] = self.delta_velocity[p,i]/(2.0*self.sigma[p,i]**2) + \
+                    self.delta_velocity[q,i]/(2.0*self.sigma[q,i]) + \
+                    self.delta_velocity[r,i]/(2.0*self.sigma[r,i])
                 _r2[i] = _temp1 + _temp2 + _temp3
 
         _r2 = 1.0 + np.tanh(_r2)
