@@ -307,7 +307,7 @@ class Source2D(Sources):
     def _plane(self,x,y,t=0):
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
 
-        harmonic = self.transversal_function(y)*self.harmonic_function(self.k[0]*(x-self.offset[1]) - self.omega*t)
+        harmonic = self.transversal_function(y)*self.harmonic_function(self.k[0]*(x-self.offset[1] - (self.omega/self.k[0])*t))
 
         wave[0,:,:] = self.amplitude[0]*harmonic
         wave[1,:,:] = self.amplitude[1]*harmonic
@@ -335,7 +335,7 @@ class Source2D(Sources):
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
 
         if t<=self.t_off:
-            harmonic = self.harmonic_function(self.k[0]*(x-self.offset[1]) - self.omega*t)
+            harmonic = self.harmonic_function(self.k[0]*(x-self.offset[1] - (self.omega/self.k[0])*t))
             shape = self.transversal_function(y)*self.shape_function(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
             shape = shape*harmonic
         else:
