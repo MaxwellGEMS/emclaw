@@ -1,8 +1,20 @@
+fontsize = 18
 import os
 from glob import glob
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': fontsize})
+matplotlib.rcParams.update({'font.weight': 'normal'})
+matplotlib.rcParams['axes.formatter.limits'] = [0,3]
+matplotlib.rcParams['mathtext.default'] = 'sf'
+matplotlib.rcParams['axes.formatter.use_mathtext'] = True
+matplotlib.rcParams['xtick.labelsize'] = fontsize
+matplotlib.rcParams['ytick.labelsize'] = fontsize
+matplotlib.rcParams['axes.labelsize'] = fontsize
+matplotlib.rcParams['lines.linewidth'] = 1.5
+matplotlib.rcParams['lines.markersize'] = 10
+matplotlib.rcParams['lines.color'] = 'r'
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import colorConverter
@@ -12,7 +24,6 @@ from matplotlib import pylab as plt
 from clawpack.pyclaw import Solution
 from scipy.io import loadmat,savemat
 from matplotlib.streamplot import  streamplot
-matplotlib.rcParams.update({'font.size': 10})
 
 # plot frame_plot_range together, define range
 frame_plot_range = range(1,101,1)
@@ -225,7 +236,6 @@ def postprocess_1d(outdir='./_output',multiple=False,overwrite=False,sampling=5,
             sampled[:,9] = sampled[:,3]*sampled[:,4]
             sampled[:,10] = np.gradient(sampled[:,9],sampled[2,0]-sampled[1,0])
 
-
             tt = sampled[6::sampling,0]
             dt = tt[1] - tt[0]
             dx = np.gradient(sampled[6::sampling,1],dt)
@@ -265,17 +275,17 @@ def postprocess_1d(outdir='./_output',multiple=False,overwrite=False,sampling=5,
             plot_single(tt,dx,ylabel='$dx_{max}/dt\quad (a.u.)$',
                 figspath=figspath,figname=base_name+'dxdt_bis')
 
-            plot_single(tt,di,ylabel='$di_{max}/dt\quad (a.u.)$',
+            plot_single(tt,di,ylabel='$dI_{max}/dt\quad (a.u.)$',
                 figspath=figspath,figname=base_name+'didt_bis')
 
-            plot_single(tt,ds,ylabel='$ds_{max}/dt\quad (a.u.)$',
+            plot_single(tt,ds,ylabel='$d|S|_{max}/dt\quad (a.u.)$',
                 figspath=figspath,figname=base_name+'dsdt_bis')
 
         if save_mat:
             summary={'Q':Q,'derived':derived_quantities}
             savemat(os.path.join(figspath,base_name+'summary'),summary)
 
-def plot_together(x,y1,y2,xlabel='time $t\quad (ct)^{-1}$',y1label='y1',y2label='y2',shape='.:',figspath='./_output',figname='figure'):
+def plot_together(x,y1,y2,xlabel='$t\quad (ct)^{-1}$',y1label='y1',y2label='y2',shape='.:',figspath='./_output',figname='figure'):
         plt.close('all')
         plt.figure()
         f, axarr = plt.subplots(2, 1,sharex=True)
@@ -289,7 +299,7 @@ def plot_together(x,y1,y2,xlabel='time $t\quad (ct)^{-1}$',y1label='y1',y2label=
         plt.savefig(os.path.join(figspath,figname+'.eps'),format='eps',dpi=320,bbox_inches='tight')
         plt.close()
 
-def plot_single(x,y,xlabel='time $t\quad (ct)^{-1}$',ylabel='y',shape='.:',figspath='./_output',figname='figure'):
+def plot_single(x,y,xlabel='$t\quad (ct)^{-1}$',ylabel='y',shape='.:',figspath='./_output',figname='figure'):
         plt.close('all')
         plt.figure()
         f, axarr = plt.subplots(1, 1,sharex=True)
@@ -307,8 +317,3 @@ if __name__ == "__main__":
     args,app_args = util._info_from_argv(sys.argv)
     print app_args
     postprocess_1d(**app_args)
-
-
-    
-
-    
