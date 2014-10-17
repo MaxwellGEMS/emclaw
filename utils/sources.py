@@ -104,7 +104,12 @@ class Sources:
                 
                 state.q[p,:,:] = waveshape
 
-                
+        if self.shape=='farago':
+            x = state.grid.x.centers
+            dx = state.grid.x.delta
+            ddx = dx/2.0
+            state.q[0,:] = (2.0*np.sin(ddx)*np.sin(x))/dx      
+            state.q[1,:] = -1.0*(np.cos(x)*np.sin(ddx))/dx
 
         return state
 
@@ -173,6 +178,9 @@ class Source1D(Sources):
             self.pulse_width = self.wavelength
             self.shape_function = np.exp
             self.function = self._pulse
+            self.averaged = True
+            self._dx = 1.0
+            self._cp = np.sqrt(np.pi)
 
         if self.shape=='harmonic pulse':
             self.pulse_width = self.wavelength
@@ -198,7 +206,15 @@ class Source1D(Sources):
 
     def _pulse(self,x,t):
         wave = np.zeros( [2,len(x)], order='F')
-        pulseshape = self.shape_function(-(x - (self.offset + self.v*t))**2/self.pulse_width**2)
+        if self.averaged:
+            from scipy.special import erf
+            ddx = self._dx/2.0
+            arg0 = self.offset + self.v*t - x
+            arg1 = (ddx + arg0)/self.pulse_width
+            arg2 = (ddx - arg0)/self.pulse_width
+            pulseshape = np.sqrt(np.pi)*self.pulse_width*(erf(arg1)+erf(arg2))/(2.0*self._dx)
+        else:
+            pulseshape = self.shape_function(-(x - (self.offset + self.v*t))**2/self.pulse_width**2)
         wave[0,:] = self.Ey*pulseshape
         wave[1,:] = self.Hz*pulseshape
 
@@ -256,6 +272,7 @@ class Source2D(Sources):
             self.function = self._pulse
             self.heading = 'x'
             self.t_off = (4.0*self.pulse_width)/self.v[0]
+            self.averaged = False
 
         if self.shape=='harmonic pulse':
             self.pulse_width = self.wavelength
@@ -307,7 +324,7 @@ class Source2D(Sources):
     def _plane(self,x,y,t=0):
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
 
-        harmonic = self.transversal_function(y)*self.harmonic_function(self.k[0]*(x-self.offset[1] - (self.omega/self.k[0])*t))
+        harmonic = self.transversal_function(y)*self.harmonic_function(self.k[0]*(x-self.offset[0] - (self.omega/self.k[0])*t))
 
         wave[0,:,:] = self.amplitude[0]*harmonic
         wave[1,:,:] = self.amplitude[1]*harmonic
@@ -318,15 +335,21 @@ class Source2D(Sources):
     def _pulse(self,x,y,t=0):
 
         wave = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
-        
-        
+
         if t<=self.t_off:
-            shape = self.transversal_function(y)*np.exp(-(x - (self.offset[1] + self.v[0]*t))**2/self.pulse_width**2)
+            if self.averaged:
+                shape = self.transversal_function(y)*self._pulse_averaged(x,y,t=t)
+            else:
+                shape = self.transversal_function(y)*np.exp(-(x - (self.offset[0] + self.v[0]*t))**2/self.pulse_width**2)
         else:
             shape = 0.0
-
-        wave[0,:,:] = self.amplitude[0]*shape
-        wave[1,:,:] = self.amplitude[1]*shape
+        p = None
+        if self.heading=='x': p=1
+        if self.heading=='y': p=0
+        
+        if p is not None:
+            wave[p,:,:] = self.amplitude[p]*shape
+        
         wave[2,:,:] = self.amplitude[2]*shape
 
         return wave
@@ -384,13 +407,45 @@ class Source2D(Sources):
 
         return shape
 
+    def _averaged_gauss(self,x,delta=None,s=1.0,xo=0.0,v=0.0,t=0.0):
+        from scipy.special import erf
+        arg = xo + v*t - x
+        if delta is None:
+            delta = self._dx
+        ddx = delta/2.0
+
+        erravg = (np.sqrt(np.pi)*s*(erf((ddx + arg)/s) + erf((ddx - arg)/s)))/(2.0*delta)
+        
+        return erravg
+
+    def _pulse_averaged(self,x,y,t=0):
+        shape = np.ones(  [x.shape[0],y.shape[1]], order='F')
+
+        u = v = False
+
+        if self.heading=='x': u = True
+        
+        if self.heading=='y': v =  True
+        
+        if self.heading=='xy':
+            u = v = True
+            self.v[1] = 0.0
+
+        if u:
+            shape = self._averaged_gauss(x,delta=self._dx,s=self.pulse_width,xo=self.offset[0],v=self.v[0],t=t)
+
+        if v:
+            shape = (shape)*self._averaged_gauss(y,delta=self._dy,s=self.pulse_width,xo=self.offset[1],v=self.v[1],t=t)
+
+        return shape
+
     def __init__(self,material,shape='off',**kwargs):
         self._set_f_w(material,kwargs)
         self.options = {}
         self.k = np.asarray([2.0*np.pi/self.wavelength,0.0])
         self.v = material.co*np.asarray([1.0/material.bkg_n[0],1.0/material.bkg_n[1]])
         self.amplitude = np.asarray([0.0,material.zo,1.0])
-        self.offset = np.zeros([3])
+        self.offset = np.zeros([2])
         self.transversal_shape = 'plane'
         self.transversal_offset = 0.0
         self.transversal_width = 0.0
@@ -399,6 +454,8 @@ class Source2D(Sources):
         self.custom = False
         self.function = None
         self.heading = 'x'
+        self._dx = 1.0
+        self._dy = 1.0
         self._material = material
 
 class Source3D(Sources):

@@ -49,7 +49,7 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
     double precision, intent(in)  ::   ql(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(in)  ::   qr(num_eqn,1-num_ghost:maxnx+num_ghost)
     
-    double precision, intent(out) :: fwave(num_waves,num_eqn,1-num_ghost:maxnx+num_ghost)
+    double precision, intent(out) :: fwave(num_eqn,num_waves,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) ::    s(num_waves,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: apdq(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: amdq(num_eqn,1-num_ghost:maxnx+num_ghost)

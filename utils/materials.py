@@ -230,6 +230,8 @@ class Material1D(Material):
 
             if 'gauss' in self.shape:
                 self.function = self._gaussian_rip
+                self.averaged = True
+                self._dx = 1
             
             if 'tanh' in self.shape:
                 self.function = self._tanh_rip
@@ -255,7 +257,7 @@ class Material1D(Material):
             
             self._rip_precalc = False
 
-        if self.shape.find('fiber vibrate'):
+        if self.shape=='fiber vibrate':
             self.delta_length = 5.0
             self.delta_corner = 5.0
             self.delta_eta    = np.ones([2])
@@ -266,6 +268,9 @@ class Material1D(Material):
             self.function = self._oscillate_fiber
             self.update_at_each_stage = True
 
+        if self.shape=='farago':
+            self.function = self._farago
+
         if self.nonlinear:
             self.chi2_e = 0.0
             self.chi3_e = 0.0
@@ -274,9 +279,50 @@ class Material1D(Material):
 
         return
 
+    def _farago(self,x,t):
+        eta = np.zeros( [4,len(x)], order='F')
+
+        eta[0,:].fill((1.0+t)**2)
+        eta[1,:].fill(1.0)
+        eta[2,:].fill(2.0*(1.0+t))
+        eta[3,:].fill(0.0)
+
+        return eta
+
     def _gaussian_rip(self,x,t):
                 
         eta = np.zeros( [4,len(x)], order='F')
+
+        if self.averaged:
+            eta = self._gaussian_rip_averaged(x,t)
+        else:
+            u_x_e = x - self.delta_velocity_e*t - self.offset_e
+            u_x_m = x - self.delta_velocity_m*t - self.offset_m
+            u_e = (u_x_e/self.sigma_e)**2
+            u_m = (u_x_m/self.sigma_m)**2
+            u_e_t = 2.0*((self.delta_velocity_e*u_x_e)/(self.sigma_e**2))
+            u_m_t = 2.0*((self.delta_velocity_m*u_x_m)/(self.sigma_m**2))
+
+            eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_er
+            eta[1,:] = self.delta_m*np.exp(-u_m) + self.bkg_mr
+            eta[2,:] = u_e_t*self.delta_e*np.exp(-u_e)
+            eta[3,:] = u_m_t*self.delta_m*np.exp(-u_m)
+
+        return eta
+    def _gaussian_rip_averaged(self,x,t):
+        eta = np.zeros( [4,len(x)], order='F')
+        from scipy.special import erf
+        ddx = self._dx/2.0
+        arg0_e = self.offset_e + self.delta_velocity_e*t - x
+        arg1_e = (ddx + arg0_e)/self.sigma_e
+        arg2_e = (ddx - arg0_e)/self.sigma_e
+
+        arg0_m = self.offset_m + self.delta_velocity_m*t - x
+        arg1_m = (ddx + arg0_m)/self.sigma_m
+        arg2_m = (ddx - arg0_m)/self.sigma_m
+
+        eta[0,:] = (1/self._dx)*(2.0*ddx*self.bkg_er + 0.5*self.delta_e*np.sqrt(np.pi)*self.sigma_e*(erf(arg1_e)+erf(arg2_e)))
+        eta[1,:] = (1/self._dx)*(2.0*ddx*self.bkg_mr + 0.5*self.delta_m*np.sqrt(np.pi)*self.sigma_m*(erf(arg1_m)+erf(arg2_m)))
 
         u_x_e = x - self.delta_velocity_e*t - self.offset_e
         u_x_m = x - self.delta_velocity_m*t - self.offset_m
@@ -285,10 +331,10 @@ class Material1D(Material):
         u_e_t = 2.0*((self.delta_velocity_e*u_x_e)/(self.sigma_e**2))
         u_m_t = 2.0*((self.delta_velocity_m*u_x_m)/(self.sigma_m**2))
 
-        eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_er
-        eta[1,:] = self.delta_m*np.exp(-u_m) + self.bkg_mr
         eta[2,:] = u_e_t*self.delta_e*np.exp(-u_e)
         eta[3,:] = u_m_t*self.delta_m*np.exp(-u_m)
+        #eta[2,:] = (1/self._dx)*(self.delta_e*(-np.exp(-(arg1_e**2)) + np.exp(-(arg2_e**2))))
+        #eta[3,:] = (1/self._dx)*(self.delta_m*(-np.exp(-(arg1_m**2)) + np.exp(-(arg2_m**2))))
 
         return eta
 
@@ -317,7 +363,7 @@ class Material1D(Material):
 
     def _oscillate_fiber(self,x,t=0):
 
-        eta = np.zeros( [4,x.shape[0],y.shape[1]], order='F')
+        eta = np.zeros( [4,x.shape[0]], order='F')
 
         xid = self.delta_corner
         
@@ -533,6 +579,54 @@ class Material2D(Material):
 
         _r2 = np.exp(-_r2)
         _rt = 2.0*_r2*_rt
+
+        for i in range(0,3):
+            eta[i  ] = self.delta_eta[i]*_r2[i] + self.bkg_eta[i]
+            eta[i+3] = self.delta_eta[i]*_rt[i]
+
+        return eta
+
+    def _averaged_gauss(self,x,dx=None,s=1.0,xo=0.0,v=0.0,t=0.0):
+        from scipy.special import erf
+        arg = xo + v*t - x
+        if dx is None:
+            dx = self._dx
+        ddx = dx/2.0
+
+        erravg = (np.sqrt(np.pi)*s*(erf((ddx + arg)/s) + erf((ddx - arg)/s)))/(2.0*dx)
+        
+        return erravg
+
+    def _gaussian_rip_averaged(self,x,y,t=0):
+        eta = np.zeros( [6,x.shape[0],y.shape[1]], order='F')
+        _r2 = np.ones( [3,x.shape[0],y.shape[1]], order='F')
+        _rp = np.ones( [3,x.shape[0],y.shape[1]], order='F')
+        _rt = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
+
+        u = v = False
+
+        if self.dim=='x': u = True
+        
+        if self.dim=='y': v =  True
+        
+        if self.dim=='xy': u = v = True
+
+        if u:
+            for i in range(0,3):
+                _r2[i] = self._averaged_gauss(x,s=self.delta_sigma[0,i],xo=self.offset[0,i],v=self.delta_velocity[0,i],t=t)
+                _temp1 = x - self.offset[0,i] - self.delta_velocity[0,i]*t
+                _rp[i] = (_temp1/self.delta_sigma[0,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[0,i])/(self.delta_sigma[0,i]**2)
+
+        if v:
+            for i in range(0,3):
+                _r2[i] = (_r2[i])*self._averaged_gauss(y,s=self.delta_sigma[1,i],xo=self.offset[1,i],v=self.delta_velocity[1,i],t=t)
+                _temp2 = y - self.offset[1,i] - self.delta_velocity[1,i]*t
+                _rp[i] = _rp[i] + (_temp2/self.delta_sigma[1,i])**2
+                _rt[i] = _rt[i] + (_temp2*self.delta_velocity[1,i])/(self.delta_sigma[1,i]**2)
+
+        _rp = np.exp(-_rp)
+        _rt = 2.0*_rp*_rt
 
         for i in range(0,3):
             eta[i  ] = self.delta_eta[i]*_r2[i] + self.bkg_eta[i]

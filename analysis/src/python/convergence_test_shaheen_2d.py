@@ -1,14 +1,30 @@
+fontsize = 18
 import os
 from glob import glob
-
-from clawpack.pyclaw import Solution
-
-from scipy.io import loadmat,savemat
 import numpy as np
 import matplotlib
-# set matplotlib to work over X-forwarding
 matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': fontsize})
+matplotlib.rcParams.update({'font.weight': 'normal'})
+matplotlib.rcParams['axes.formatter.limits'] = [0,3]
+matplotlib.rcParams['mathtext.default'] = 'sf'
+matplotlib.rcParams['axes.formatter.use_mathtext'] = True
+matplotlib.rcParams['xtick.labelsize'] = fontsize
+matplotlib.rcParams['ytick.labelsize'] = fontsize
+matplotlib.rcParams['axes.labelsize'] = fontsize
+matplotlib.rcParams['lines.linewidth'] = 1.5
+matplotlib.rcParams['lines.markersize'] = 10
+matplotlib.rcParams['lines.color'] = 'r'
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.collections import PolyCollection
+from matplotlib.colors import colorConverter
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
 from matplotlib import pylab as plt
+from clawpack.pyclaw import Solution
+from scipy.io import loadmat,savemat
+from matplotlib.streamplot import  streamplot
+from scipy.io import loadmat,savemat
 
 def debug_convergence_message(results,restype):
     print '\n'+restype+' (absolute)\t\t'+str(results[0])

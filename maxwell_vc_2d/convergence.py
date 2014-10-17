@@ -5,25 +5,24 @@ import numpy as np
 sys.path.append(os.path.realpath('../utils'))
 sys.path.append(os.path.realpath('../'))
 
-
 from utils.materials import Material2D
 from utils.sources import Source2D
 
 x_lower = 0.0
-x_upper = 300.0
+x_upper = 50.0
 
 y_lower = 0.0
-y_upper = 300.0
+y_upper = 50.0
 
 sy = y_upper-y_lower
 sx = x_upper-x_lower
 
-mid_point_x = sx/2.0
-mid_point_y = sy/2.0
+mid_point_x = (x_upper-x_lower)/2.0
+mid_point_y = (y_upper-y_lower)/2.0
 
 material = Material2D(shape='moving_gauss',metal=False)
 material.bkg_eta.fill(1.5)
-material.dim = 'x'
+material.dim = 'xy'
 material.setup()
 material.offset[1,:].fill(mid_point_y)
 material._calculate_n()
@@ -32,15 +31,19 @@ def grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl):
     dx = (x_upper-x_lower)/mx
     dy = (y_upper-y_lower)/my
     dt = 0.90/(material.co*np.sqrt(1.0/(dx**2)+1.0/(dy**2)))
-    tf = 2.0*(x_upper-x_lower+5.0)/material.v
+    tf = 1.0*(x_upper-x_lower)/(1.0/1.5)
 
     return dx,dy,dt,tf
 
-def em2D(mx=128,my=128,num_frames=100,cfl=1.0,outdir='./_output',before_step=True,debug=False,heading='x',shape='pulse'):
+def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=True,debug=False,heading='x',shape='cosine',velocity=0.59,sigma=[4.0,2.0]):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
-    source = Source2D(material,shape=shape,wavelength=2.0)
+    for i in range(2): material.delta_sigma[i,:]=sigma[i]
+
+    outdir = outdir + '_' + shape + '_' + str(int(np.log2(mx)))
+    material.delta_velocity[0,:].fill(velocity)
+    source = Source2D(material,shape='pulse',wavelength=2.0)
 
     if shape=='off':
         source.offset.fill(5.0)
@@ -51,14 +54,11 @@ def em2D(mx=128,my=128,num_frames=100,cfl=1.0,outdir='./_output',before_step=Tru
         source.offset.fill(-5.0)
         source.transversal_offset = sy/2.0
         source.transversal_width = sy
-        source.transversal_shape = 'plane'
+        source.transversal_shape = shape
 
-    source.heading = heading
     source.setup()
-
-    if (debug and MPI.COMM_WORLD.rank==0):
-        material.dump()
-        source.dump()
+    source.heading = heading
+    source.averaged = True
 
     num_eqn   = 3
     num_waves = 2
@@ -108,11 +108,11 @@ def em2D(mx=128,my=128,num_frames=100,cfl=1.0,outdir='./_output',before_step=Tru
         solver.user_aux_bc_lower = material.setaux_lower
 
     solver.bc_lower[1] = pyclaw.BC.wall
-    solver.bc_upper[0] = pyclaw.BC.extrap
+    solver.bc_upper[0] = pyclaw.BC.wall
     solver.bc_upper[1] = pyclaw.BC.wall
 
     solver.aux_bc_lower[1]= pyclaw.BC.wall
-    solver.aux_bc_upper[0]= pyclaw.BC.extrap
+    solver.aux_bc_upper[0]= pyclaw.BC.wall
     solver.aux_bc_upper[1]= pyclaw.BC.wall
 
 #   before step configure
@@ -136,6 +136,12 @@ def em2D(mx=128,my=128,num_frames=100,cfl=1.0,outdir='./_output',before_step=Tru
 #   array initialization
     source.init(state)
     material.init(state)
+
+    if debug: aux=state.get_aux_global()
+    if (debug and MPI.COMM_WORLD.rank==0):
+        material.dump()
+        source.dump()
+        material.plot(aux[0,:,:])
 
 #   controller
     claw = pyclaw.Controller()
