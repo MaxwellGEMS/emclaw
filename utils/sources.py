@@ -109,7 +109,7 @@ class Sources:
             dx = state.grid.x.delta
             ddx = dx/2.0
             state.q[0,:] = (2.0*np.sin(ddx)*np.sin(x))/dx      
-            state.q[1,:] = -1.0*(np.cos(x)*np.sin(ddx))/dx
+            #state.q[1,:] = #-1.0*(np.cos(x)*np.sin(ddx))/dx
 
         return state
 
