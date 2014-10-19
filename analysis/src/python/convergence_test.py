@@ -27,23 +27,35 @@ from matplotlib.streamplot import  streamplot
 from scipy.io import loadmat,savemat
 
 # matlab source path and filename
-matpath = '/simdesk/sandbox/emclaw/results/1D/convergence/summary'
-matsrc  = 'analytic_centers_all_hd_exact_131072.mat'
+# matpath = '/simdesk/sandbox/emclaw/results/1D/convergence/summary'
+# matsrc  = 'analytic_centers_all_hd_exact_131072.mat'
+#
+# matpath = '/simdesk/sandbox/emclaw/analysis/src/matlab/results'
+# matsrc  = 'analytic_centers_all_hd_exact_65536.mat'
+#
+matpath = '/media/noor/simdesk/results/analysis/results'
+matsrc  = 'analytic_centers_forward_all_hd_exact_65536.mat'
+matorig = 'matlab'
 
+# matpath = '/simdesk/sandbox/emclaw/results/1D/convergence_farago_averaged/summary'
+# matsrc  = 'convergence_exact_131072'
+# matorig = 'mathematica'
 # pyclaw source path and filenames
-testpath = '/simdesk/sandbox/emclaw/results/1D/convergence_averaged/'
+
+# testpath = '/simdesk/sandbox/emclaw/results/1D/convergence_farago_averaged/'
+testpath = '/simdesk/sandbox/emclaw/results/1D/convergence_alt_averaged'
 testbase = '_output_'
 
 # output peraphernalia
-savepath = '/simdesk/sandbox/emclaw/results/1D/convergence_averaged/summary'
-figspath = '/simdesk/sandbox/emclaw/results/1D/convergence_averaged/summary/figures'
-repopath = '/simdesk/sandbox/emclaw/results/1D/convergence_averaged/summary/reports'
-outprefix = 'f55_matgrid_'
+savepath = '/simdesk/sandbox/emclaw/results/1D/convergence_alt_averaged/summary_mat_srcavg'
+figspath = '/simdesk/sandbox/emclaw/results/1D/convergence_alt_averaged/summary_mat_srcavg/figures'
+repopath = '/simdesk/sandbox/emclaw/results/1D/convergence_alt_averaged/summary_mat_srcavg/reports'
+outprefix = 'f61_matgrid_'
 
 # define frame of interest for analytic vs numeric convergence
-frame = 55
+frame = 61
 qn = 0
-
+pth =1.5
 # local range configuration
 local_range_delta = 2.0
 
@@ -352,7 +364,7 @@ def linear_fit(x,y):
 
 # get pyclaw directories for results
 testdirs = sorted(glob(os.path.join(testpath,testbase+'*')))
-testlen  = len(testdirs)
+testlen  = len(testdirs)-1
 
 # allocate empty arrays and dictionary for convergence results
 results = np.zeros([testlen, 12])
@@ -361,10 +373,17 @@ summary['frame'] = frame
 
 # load matlab file for analytic convergence
 print '\nloading mat file ', matsrc
-matdict = loadmat(os.path.join(matpath,matsrc),variable_names=['Q','X','dx'])
+fmatid = os.path.join(matpath,matsrc)
+if matorig=='matlab':
+    matdict = loadmat(fmatid,variable_names=['Q','X','dx'])
 
-q_exact = matdict['Q'][:,-1]
-x_exact = matdict['X'][:,-1]
+    q_exact = matdict['Q'][:,-1]
+    x_exact = matdict['X'][:,-1]
+
+if matorig=='mathematica':
+    matdict = loadmat(fmatid)
+    q_exact = matdict['Expression1'][1]
+    x_exact = matdict['Expression1'][0]
 
 # find location of Q_exact max and set local_range
 indmax = np.where(q_exact==q_exact.max())[0][0]
@@ -384,7 +403,7 @@ create_dir(figspath)
 create_dir(repopath)
 
 # Convergence test at interest_frame
-for m,enddir in enumerate(xrange(7,15,1)):
+for m,enddir in enumerate(xrange(7,16,1)):
     dirs = os.path.join(testpath,testbase+str(enddir))
     print '\n-------------------------------------------'
     print '\ndir ', dirs+''
@@ -433,14 +452,14 @@ try:
         print strt
 except:
     pass
-
+print strt
 rate = np.zeros([2,2])
-x = results[np.where(results[:,3]>=1.5),0]
-r = results[np.where(results[:,3]>=1.5),2].T
+x = results[np.where(results[:,3]>=pth),0]
+r = results[np.where(results[:,3]>=pth),2].T
 rate[0,:] = linear_fit(np.log10(x),np.log10(r))
 
-x = results[np.where(results[:,5]>=1.5),0]
-r = results[np.where(results[:,5]>=1.5),4].T
+x = results[np.where(results[:,5]>=pth),0]
+r = results[np.where(results[:,5]>=pth),4].T
 rate[1,:] = linear_fit(np.log10(x),np.log10(r))
 strt = strt + '\n'+ tabulate(rate,headers=['$p$','$c$'],tablefmt="latex",floatfmt="4.3e")
 f = open(dstfile,'w`')

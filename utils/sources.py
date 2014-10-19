@@ -86,9 +86,15 @@ class Sources:
 
             if state.num_dim==1:
                 x = grid.x.centers
-                waveshape = np.exp(-(x-self.offset)**2/(self.pulse_width**2))
+                from scipy.special import erf
+                ddx  = self._dx/2.0
+                arg0 = self.offset - x
+                arg1 = (ddx + arg0)/self.pulse_width
+                arg2 = (ddx - arg0)/self.pulse_width
+                waveshape = np.sqrt(np.pi)*self.pulse_width*(erf(arg1)+erf(arg2))/(2.0*self._dx)
                 state.q[0,:] = self._material.zo*waveshape
                 state.q[1,:] = waveshape
+
             if state.num_dim>=2:
                 _r = 0.0
                 for i in range(len(self.heading)):
@@ -164,6 +170,7 @@ class Sources:
         self.shape      = None
         self.custom     = False
         self.custom_func = user_source
+        self.heading = 'x'
 
 class Source1D(Sources):
 
@@ -248,8 +255,8 @@ class Source1D(Sources):
         self.function = None
         self.custom_func = user_source
         self._material = material
-        self.dy = 1.0
         self.dx = 1.0
+        self.heading = 'x'
 
 class Source2D(Sources):
     def setup(self,options={}):
