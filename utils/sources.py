@@ -166,6 +166,37 @@ class Sources:
             if not attr.startswith('_'):
                 print "%s = %s" % (attr, getattr(self, attr))
 
+    def _dump_to_latex(self):
+        from tabulate import tabulate
+        strt = r'\begin{table][h!]' + '\n' + r'\centering' + '\n' + r'\begin{tabular}[cl]' + '\n' + r'\hline' + '\n'
+        strt = strt + r'variable & value(s) \\' + '\n' + r'\hline' +'\n'
+        for attr in sorted(dir(self)):
+            if not attr.startswith('_'):
+                s = getattr(self,attr)
+                if isinstance(s, (str, unicode)):
+                    strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + s + r' \\' + '\n'
+                elif isinstance(s,float):
+                    strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
+                elif isinstance(s,bool):
+                    strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
+                else:
+                    try:
+                        len(s)
+                        strt = strt + '\t' + r'\multicolumn{1}{c}\multirow{'+str(np.shape(s)[0])+r'}{*}{\verb+' + attr + r'+}' + '\t' + r'&' + '\t'
+                        for k in range(np.shape(s)[0]):
+                            strt = strt + str(s[k]) + r' \\'
+                        strt = strt + '\n'
+                    except:
+                        if ('function' in str(s)): s=str(s).split('function ')[1].split('at')[0]
+                        if ('method' in str(s)): s=str(s).split('method')[1].split('at')[0].split('.')[1].split('of')[0]
+                        if ('ufunc' in str(s)): s=str(s).split('ufunc ')[1].split('>')[0]
+                        strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
+        strt = strt + r'\end{tabular}' + '\n' + r'\end{table]' + '\n'
+        import uuid
+        f = open('_source_'+str(uuid.uuid1())+'.tex','a')
+        f.write(strt)
+        f.close()
+
     def __init__(self):
         self.shape      = None
         self.custom     = False

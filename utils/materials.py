@@ -41,6 +41,37 @@ class Material:
             if not attr.startswith('_'):
                 print "%s = %s" % (attr, getattr(self, attr))
 
+    def _dump_to_latex(self):
+        from tabulate import tabulate
+        strt = r'\begin{table}[h!]' + '\n' + r'\centering' + '\n' + r'\begin{tabular}[cl]' + '\n' + r'\hline' + '\n'
+        strt = strt + r'variable & value(s) \\' + '\n' + r'\hline' +'\n'
+        for attr in sorted(dir(self)):
+            if not attr.startswith('_'):
+                s = getattr(self,attr)
+                if isinstance(s, (str, unicode)):
+                    strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + s + r' \\' + '\n'
+                elif isinstance(s,float):
+                    strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
+                elif isinstance(s,bool):
+                    strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
+                else:
+                    try:
+                        len(s)
+                        strt = strt + '\t' + r'\multicolumn{1}{c}\multirow{'+str(np.shape(s)[0])+r'}{*}{\verb+' + attr + r'+}' + '\t' + r'&' + '\t'
+                        for k in range(np.shape(s)[0]):
+                            strt = strt + str(s[k]) + r' \\'
+                        strt = strt + '\n'
+                    except:
+                        if ('function' in str(s)): s=str(s).split('function ')[1].split('at')[0]
+                        if ('method' in str(s)): s=str(s).split('method')[1].split('.')[1].split('of')[0]
+                        if ('ufunc' in str(s)): s=str(s).split('ufunc ')[1].split('>')[0]
+                        strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
+        strt = strt + r'\end{tabular}' + '\n' + r'\end{table}' + '\n'
+        import uuid
+        f = open('_material_'+str(uuid.uuid1())+'.tex','a')
+        f.write(strt)
+        f.close()
+
     def _dump(self,obj):
         for attr in sorted(dir(obj)):
             try:
@@ -203,18 +234,38 @@ class Material:
             state.aux = self.function(x,y,z,t)
         return state
 
+    def _get_vibrate(self,span=None,t=0.0):
+
+        w  = self.delta_function(self.delta_omega*t)
+        dw = self.delta_sign_dt*self.delta_omega*self.delta_function_dt(self.delta_omega*t)
+
+        if self.delta_smooth:
+            s  = self.delta_smooth_function(x,y)
+            w  = s*w
+            dw = s*dw
+
+        if span is not None:
+            w  =  w*span
+            dw = dw*span
+
+        return w,dw
+
     def __init__(self):
         self.normalized_vacuum = True
-        self.shape = None
-        self.custom = False
-        
+        self.shape    = None
+        self.custom   = False
+        self.averaged = True
+
 class Material1D(Material):
     def setup(self,options={}):
         self._unpack_options(options=options)
         self._set_vacuum()
-        self.bkg_n = np.sqrt(self.bkg_er*self.bkg_mr)
+
+        self.bkg_n = np.sqrt(self.bkg_e*self.bkg_h)
         self.n_max = self.bkg_n
+
         temp_flag = False
+
         if self.custom:
             self.custom_function = user_material
 
@@ -230,8 +281,6 @@ class Material1D(Material):
 
             if 'gauss' in self.shape:
                 self.function = self._gaussian_rip
-                self.averaged = True
-                self._dx = 1
             
             if 'tanh' in self.shape:
                 self.function = self._tanh_rip
@@ -249,7 +298,7 @@ class Material1D(Material):
             self.relative_amplitude = 0.1
             self.delta_n     = self.relative_amplitude*(self.bkg_n)
             self.delta_e     = self.delta_n
-            self.delta_m     = self.delta_n
+            self.delta_h     = self.delta_n
             self.em_equal = True
 
             if not self._moving:
@@ -257,16 +306,18 @@ class Material1D(Material):
             
             self._rip_precalc = False
 
-        if self.shape=='fiber vibrate':
+        if self.shape=='vibrate':
             self.delta_length = 5.0
             self.delta_corner = 5.0
-            self.delta_eta    = np.ones([2])
+            self.delta_e      = 1.0
+            self.delta_h      = 1.0
             self.delta_smooth = False
             self.delta_omega  = 2.0*np.pi
-            self.delta_function = np.sin
+            self.delta_function    = np.cos
+            self.delta_function_dt = np.sin
+            self.delta_sign_dt     = -1.0
             self.delta_smooth_function = self._gaussianf
-            self.function = self._oscillate_fiber
-            self.update_at_each_stage = True
+            self.function = self._oscillate
 
         if self.shape=='farago':
             self.function = self._farago
@@ -289,52 +340,38 @@ class Material1D(Material):
 
         return eta
 
+    def _x_w_offset(self,x,v=[0.0,0.0],t=0.0):
+        u_x_e = x - v[0]*t - self.offset_e
+        u_x_m = x - v[1]*t - self.offset_m
+
+        return u_x_e,u_x_m
+
     def _gaussian_rip(self,x,t):
                 
         eta = np.zeros( [4,len(x)], order='F')
 
-        if self.averaged:
-            eta = self._gaussian_rip_averaged(x,t)
-        else:
-            u_x_e = x - self.delta_velocity_e*t - self.offset_e
-            u_x_m = x - self.delta_velocity_m*t - self.offset_m
-            u_e = (u_x_e/self.sigma_e)**2
-            u_m = (u_x_m/self.sigma_m)**2
-            u_e_t = 2.0*((self.delta_velocity_e*u_x_e)/(self.sigma_e**2))
-            u_m_t = 2.0*((self.delta_velocity_m*u_x_m)/(self.sigma_m**2))
+        u_x_e,u_x_m = self._x_w_offset(x,v=[self.delta_velocity_e,self.delta_velocity_m],t=t)
 
-            eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_er
-            eta[1,:] = self.delta_m*np.exp(-u_m) + self.bkg_mr
-            eta[2,:] = u_e_t*self.delta_e*np.exp(-u_e)
-            eta[3,:] = u_m_t*self.delta_m*np.exp(-u_m)
-
-        return eta
-    def _gaussian_rip_averaged(self,x,t):
-        eta = np.zeros( [4,len(x)], order='F')
-        from scipy.special import erf
-        ddx = self._dx/2.0
-        arg0_e = self.offset_e + self.delta_velocity_e*t - x
-        arg1_e = (ddx + arg0_e)/self.sigma_e
-        arg2_e = (ddx - arg0_e)/self.sigma_e
-
-        arg0_m = self.offset_m + self.delta_velocity_m*t - x
-        arg1_m = (ddx + arg0_m)/self.sigma_m
-        arg2_m = (ddx - arg0_m)/self.sigma_m
-
-        eta[0,:] = (1/self._dx)*(2.0*ddx*self.bkg_er + 0.5*self.delta_e*np.sqrt(np.pi)*self.sigma_e*(erf(arg1_e)+erf(arg2_e)))
-        eta[1,:] = (1/self._dx)*(2.0*ddx*self.bkg_mr + 0.5*self.delta_m*np.sqrt(np.pi)*self.sigma_m*(erf(arg1_m)+erf(arg2_m)))
-
-        u_x_e = x - self.delta_velocity_e*t - self.offset_e
-        u_x_m = x - self.delta_velocity_m*t - self.offset_m
-        u_e = (u_x_e/self.sigma_e)**2
-        u_m = (u_x_m/self.sigma_m)**2
         u_e_t = 2.0*((self.delta_velocity_e*u_x_e)/(self.sigma_e**2))
         u_m_t = 2.0*((self.delta_velocity_m*u_x_m)/(self.sigma_m**2))
 
+        if self.averaged:
+            from scipy.special import erf
+            ddx = self._dx/2.0
+            arg1_e = (ddx - u_x_e)/self.sigma_e
+            arg2_e = (ddx + u_x_e)/self.sigma_e
+            arg1_m = (ddx - u_x_m)/self.sigma_m
+            arg2_m = (ddx - u_x_m)/self.sigma_m
+            eta[0,:] = (1/self._dx)*(2.0*ddx*self.bkg_e + 0.5*self.delta_e*np.sqrt(np.pi)*self.sigma_e*(erf(arg1_e)+erf(arg2_e)))
+            eta[1,:] = (1/self._dx)*(2.0*ddx*self.bkg_h + 0.5*self.delta_h*np.sqrt(np.pi)*self.sigma_m*(erf(arg1_m)+erf(arg2_m)))
+        else:
+            u_e = (u_x_e/self.sigma_e)**2
+            u_m = (u_x_m/self.sigma_m)**2
+            eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_e
+            eta[1,:] = self.delta_h*np.exp(-u_m) + self.bkg_h
+
         eta[2,:] = u_e_t*self.delta_e*np.exp(-u_e)
-        eta[3,:] = u_m_t*self.delta_m*np.exp(-u_m)
-        #eta[2,:] = (1/self._dx)*(self.delta_e*(-np.exp(-(arg1_e**2)) + np.exp(-(arg2_e**2))))
-        #eta[3,:] = (1/self._dx)*(self.delta_m*(-np.exp(-(arg1_m**2)) + np.exp(-(arg2_m**2))))
+        eta[3,:] = u_m_t*self.delta_h*np.exp(-u_m)
 
         return eta
 
@@ -342,16 +379,16 @@ class Material1D(Material):
         
         eta = np.zeros( [4,len(x)], order='F')
 
-        u_x_e = x - self.offset_e
-        u_x_m = x - self.offset_m
+        u_x_e,u_x_m = self._x_w_offset(x,)
+
         u_e = (u_x_e/selfsigma_e)**2
         u_m = (u_x_m/selfsigma_m)**2
-        eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_er
-        eta[1,:] = self.delta_m*np.exp(-u_m) + self.bkg_mr    
+        eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_e
+        eta[1,:] = self.delta_h*np.exp(-u_m) + self.bkg_h    
 
         return eta
 
-    def _gaussianf(self,x,y):
+    def _gaussianf(self,x):
 
         u = x - self.delta_corner + self.delta_length/2.0
 
@@ -361,7 +398,7 @@ class Material1D(Material):
         
         return g
 
-    def _oscillate_fiber(self,x,t=0):
+    def _oscillate(self,x,t=0):
 
         eta = np.zeros( [4,x.shape[0]], order='F')
 
@@ -369,12 +406,12 @@ class Material1D(Material):
         
         spand = ((x>=xid)*(x<=(xid+self.delta_length)))
 
-        if not self.delta_smooth:
-            w = self.delta_function(self.delta_omega*t)*spand
-        else:
-            w = self.delta_function(self.delta_omega*t)*self.delta_smooth_function(x)*spand
+        w,dw = self._get_vibrate(span=spand,t=t)
 
-        for i in range(0,2): eta[i] = self.bkg_eta[i] + self.fiber_eta[i]*span + self.delta_eta[i]*w
+        eta[0,:] = self.bkg_e + self.delta_e*w
+        eta[1,:] = self.bkg_h + self.delta_h*w
+        eta[2,:] = self.delta_e*dw
+        eta[3,:] = self.delta_h*dw
 
         return eta
 
@@ -382,13 +419,12 @@ class Material1D(Material):
         
         eta = np.zeros( [4,len(x)], order='F')
 
-        u_x_e = (x - self.delta_velocity_e*t - self.offset_e)/self.sigma_e
-        u_x_m = (x - self.delta_velocity_m*t - self.offset_m)/self.sigma_m
+        u_x_e,u_x_m = self._x_w_offset(x,v=[self.delta_velocity_e,self.delta_velocity_m],t=t)
 
-        eta[0,:] = (self.delta_e/2.0)*(1.0 + np.tanh(u_x_e)) + self.bkg_er
-        eta[1,:] = (self.delta_m/2.0)*(1.0 + np.tanh(u_x_m)) + self.bkg_mr
+        eta[0,:] = (self.delta_e/2.0)*(1.0 + np.tanh(u_x_e)) + self.bkg_e
+        eta[1,:] = (self.delta_h/2.0)*(1.0 + np.tanh(u_x_m)) + self.bkg_h
         eta[2,:] = -(self.delta_e*self.delta_velocity_e/(2.0*self.sigma_e))/(np.cosh(u_x_e)**2)
-        eta[3,:] = -(self.delta_m*self.delta_velocity_m/(2.0*self.sigma_m))/(np.cosh(u_x_m)**2)
+        eta[3,:] = -(self.delta_h*self.delta_velocity_m/(2.0*self.sigma_m))/(np.cosh(u_x_m)**2)
 
         return eta
 
@@ -396,8 +432,8 @@ class Material1D(Material):
 
         eta = np.zeros( [4,len(x)], order='F')
 
-        eta[0,:] = self.bkg_er
-        eta[1,:] = self.bkg_mr
+        eta[0,:] = self.bkg_e
+        eta[1,:] = self.bkg_h
 
         return eta
 
@@ -415,15 +451,17 @@ class Material1D(Material):
         self.n_max = np.sqrt(eta[0]*eta[2])
 
         return
+
     def __init__(self,normalized=True,shape='homogeneous'):
         self.normalized_vacuum = normalized
-        self.bkg_er = 1.0
-        self.bkg_mr = 1.0
+        self.bkg_e = 1.0
+        self.bkg_h = 1.0
         self.shape = shape
         self.options = {}
         self.nonlinear = True
         self.custom = False
         self._moving = False
+        self._dx = 1
 
 class Material2D(Material):
     def setup(self,options={}):
@@ -497,12 +535,13 @@ class Material2D(Material):
             self.delta_omega  = 2.0*np.pi
             self.delta_function    = np.cos
             self.delta_function_dt = np.sin
+            self.delta_sign_dt     = -1.0
             
             self.delta_smooth_function = self._gaussianf
             self.delta_smooth_width = 5.0
             self.delta_smooth_length = 5.0
             
-            self.function = self._oscillate_fiber
+            self.function = self._oscillate
             
             self.update_at_each_stage = True
         
@@ -738,7 +777,7 @@ class Material2D(Material):
 
         return eta
 
-    def _oscillate_fiber(self,x,y,t=0):
+    def _oscillate(self,x,y,t=0):
 
         eta = np.zeros( [6,x.shape[0],y.shape[1]], order='F')
 
@@ -750,27 +789,22 @@ class Material2D(Material):
         
         spand = ((y>=yid)*(y<=(yid+self.delta_width)))*((x>=xid)*(x<=(xid+self.delta_length)))
 
-        if not self.delta_smooth:
-            w = self.delta_function(self.delta_omega*t)*spand
-            d = self.delta_omega*self.delta_function_dt(self.delta_omega*t)*spand
-        else:
-            w = self.delta_function(self.delta_omega*t)*self.delta_smooth_function(x,y)*spand
-            d = self.delta_omega*self.delta_function_dt(self.delta_omega*t)*self.delta_smooth_function(x,y)*spand
+        w,dw = self._get_vibrate(span=spand,t=t)
 
         for i in range(0,3): 
             eta[i]   = self.bkg_eta[i] + self.fiber_eta[i]*span + self.delta_eta[i]*w
-            eta[i+3] = -1.0*self.delta_eta[i]*d
+            eta[i+3] = self.delta_eta[i]*dw
 
         return eta
 
     def __init__(self,normalized=True,shape='homogeneous',metal=False):
         self.normalized_vacuum = normalized
         self.bkg_eta = np.ones([3])
-        self.shape = shape
+        self.shape   = shape
         self.options = {}
         self.nonlinear = True
-        self.custom = False
-        self._moving = False
+        self.custom    = False
+        self._moving   = False
         self.dim = 'x'
         self.v = 1.0
         self.update_at_each_stage = False
@@ -853,12 +887,14 @@ class Material3D(Material):
             self.delta_eta    = np.ones([6])
             self.delta_smooth = False
             self.delta_omega  = 2.0*np.pi
-            self.delta_function = np.cos
+            self.delta_function    = np.cos
+            self.delta_function_dt = np.sin
+            self.delta_sign_dt     = -1.0
             self.delta_smooth_function = self._gaussianf
             self.delta_smooth_width  = 5.0
             self.delta_smooth_length = 10.0
             self.delta_smooth_height = 5.0
-            self.function = self._oscillate_fiber
+            self.function = self._oscillate
             self.update_at_each_stage = True
         
         if self.nonlinear:
@@ -1084,7 +1120,7 @@ class Material3D(Material):
 
         return eta
 
-    def _oscillate_fiber(self,x,y,z,t=0):
+    def _oscillate(self,x,y,z,t=0):
 
         eta = np.zeros( [12,x.shape[0],y.shape[1],z.shape[2]], order='F')
 
@@ -1092,18 +1128,11 @@ class Material3D(Material):
 
         span = ((y>=yi)*(y<=(yi+self.fiber_width)))*((x>=xi)*(x<=(xi+self.fiber_length)))*((z>=zi)*(z<=(zi+self.fiber_height)))
 
-        eta[0,:,:] = self.bkg_eta[0] + self.fiber_eta[0]*span
-        eta[1,:,:] = self.bkg_eta[1] + self.fiber_eta[1]*span
-        eta[2,:,:] = self.bkg_eta[2] + self.fiber_eta[2]*span
-
         xid,yid,zid = self.delta_corner
         
         spand = ((y>=yid)*(y<=(yid+self.delta_width)))*((x>=xid)*(x<=(xid+self.delta_length)))*((z>=zid)*(z<=(zid+self.delta_height)))
 
-        if not self.delta_smooth:
-            w = self.delta_function(self.delta_omega*t)*spand
-        else:
-            w = self.delta_function(self.delta_omega*t)*self.delta_smooth_function(x,y,z)*spand
+        w,dw = self._get_vibrate(span=spand,t=t)
 
         for i in range(0,6): eta[i] = self.bkg_eta[i] + self.fiber_eta[i]*span + self.delta_eta[i]*w
 

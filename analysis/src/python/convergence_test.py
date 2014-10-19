@@ -50,7 +50,7 @@ testbase = '_output_'
 savepath = '/simdesk/sandbox/emclaw/results/1D/convergence_alt_averaged/summary_mat_srcavg'
 figspath = '/simdesk/sandbox/emclaw/results/1D/convergence_alt_averaged/summary_mat_srcavg/figures'
 repopath = '/simdesk/sandbox/emclaw/results/1D/convergence_alt_averaged/summary_mat_srcavg/reports'
-outprefix = 'f61_matgrid_'
+outprefix = 'matgrid_'
 
 # define frame of interest for analytic vs numeric convergence
 frame = 61
