@@ -193,7 +193,12 @@ class Sources:
                         strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
         strt = strt + r'\end{tabular}' + '\n' + r'\end{table]' + '\n'
         import uuid
-        f = open('_source_'+str(uuid.uuid1())+'.tex','a')
+        import os
+        try:
+            os.makedirs(self._outdir)
+        except:
+            pass
+        f = open(os.path.join(self._outdir,'_source_'+str(uuid.uuid1())+'.tex'),'a')
         f.write(strt)
         f.close()
 
@@ -202,6 +207,7 @@ class Sources:
         self.custom     = False
         self.custom_func = user_source
         self.heading = 'x'
+        self._outdir  = './'
 
 class Source1D(Sources):
 
