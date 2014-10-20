@@ -25,16 +25,16 @@ def setplot(plotdata):
 
     # Figure for pcolor plot
 
-    plotfigure = plotdata.new_plotfigure(name='Ex', figno=0)
+    plotfigure = plotdata.new_plotfigure(name='Hz', figno=0)
     # Set up for axes in this figure:
     plotaxes = plotfigure.new_plotaxes()
     plotaxes.xlimits = 'auto'
     plotaxes.ylimits = 'auto'
-    plotaxes.title = '$E_x$'
+    plotaxes.title = '$H_z$'
 
     # Set up for item on these axes:
     plotitem = plotaxes.new_plotitem(plot_type='2d_pcolor')
-    plotitem.plot_var = 0
+    plotitem.plot_var = 2
     plotitem.pcolor_cmap = colormaps.jet
     plotitem.add_colorbar = True
     plotitem.show = True
@@ -54,16 +54,16 @@ def setplot(plotdata):
     plotitem.show = True
 
     # Figure for contour plot
-    plotfigure = plotdata.new_plotfigure(name='Hz', figno=2)
+    plotfigure = plotdata.new_plotfigure(name='Ex', figno=2)
     # Set up for axes in this figure:
     plotaxes = plotfigure.new_plotaxes()
     plotaxes.xlimits = 'auto'
     plotaxes.ylimits = 'auto'
-    plotaxes.title = '$H_z$'
+    plotaxes.title = '$E_x$'
 
     # Set up for item on these axes:
     plotitem = plotaxes.new_plotitem(plot_type='2d_pcolor')
-    plotitem.plot_var = 2
+    plotitem.plot_var = 0
     plotitem.pcolor_cmap = colormaps.jet
     plotitem.add_colorbar = True
     plotitem.show = True
