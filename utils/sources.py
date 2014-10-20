@@ -98,7 +98,7 @@ class Sources:
             if state.num_dim>=2:
                 _r = 0.0
                 _r2 = 0.0
-                print self.pulse_width
+
                 for i in range(len(self.heading)):
                     _r2 = _r2 + ((grid.c_centers[dimh[i]] - self.offset[dimp[i]])**2)
                     _r  = _r + (grid.c_centers[dimh[i]] - self.offset[dimp[i]])**2/self.pulse_width[dimp[i]]**2

@@ -199,11 +199,12 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
 
 def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite=False,sampling=5,velocity=True,save_mat=True,poly=False,color=False,lorentz=False):
     if multiple:
-        outdir = outdir+'*'
+        outdir = outdir+'*'+'_5'
 
     outdirs = sorted(glob(outdir))
+    summary = {}
     print outdirs
-    summarypath = '/simdesk/sandbox/emclaw/results/1D/nonlinear/_summary'
+    summarypath = '/simdesk/sandbox/emclaw/results/1D/nl-test/_summary_5_'
     for k,dirs in enumerate(outdirs):
         print dirs
         figspath = os.path.join(dirs,'_figures')
@@ -211,13 +212,14 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
         ##### alternative for rip/norip test
         base_name_dir = dirs.split('_')
         print base_name_dir
-        base_name = base_name_dir[-1]+'_'#base_name_dir[4]+'_'+base_name_dir[5]+'_'
+        #base_name = base_name_dir[-1]+'_'
+        base_name = base_name_dir[4]+'_'+base_name_dir[3]+'_'
         print base_name
-        figspath = os.path.join('/simdesk/sandbox/emclaw/results/1D/nonlinear/norip','chi3_em_figures')#+base_name_dir[-1])
+        figspath = os.path.join('/simdesk/sandbox/emclaw/results/1D/nl-test',base_name_dir[3])
         print figspath
-        vrip = 1.0/1.50#float(base_name_dir[4].split('v')[1])/100.0
-
-
+        vrip = float(base_name_dir[3].split('v')[1])/100.0
+        if vrip==6349/100.0: vrip =0.6349
+        print vrip
         base_name = base_name_dir[-1]+'_' #base_name_dir[3]+'_'+base_name_dir[4]+'_'
 
         if not os.path.exists(figspath): os.makedirs(figspath)
@@ -261,15 +263,16 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
             xx = sampled[6::sampling,1]
             dt = tt[1] - tt[0]
             s  = sampled[6::sampling,9]
+            i  = sampled[6::sampling,7]
             dx = np.gradient(sampled[6::sampling,1],dt)
             di = np.gradient(sampled[6::sampling,7],dt)
             ds = np.gradient(sampled[6::sampling,9],dt)
-            bis = [tt,xx,dx,di,ds,s]
-            derived_quantities['outdir'+str(k)] = dirs
-            derived_quantities['vrip'+str(k)]    = vrip
-            derived_quantities['sampled'+str(k)] = sampled
-            derived_quantities['dt'+str(k)]  = dt
-            derived_quantities['bis'+str(k)] = bis
+            bis = [tt,xx,dx,di,ds,s,i]
+            summary['outdir'+str(k)] = dirs
+            summary['vrip'+str(k)]    = vrip
+            summary['sampled'+str(k)] = sampled
+            summary['dt'+str(k)]  = dt
+            summary['bis'+str(k)] = bis
 
             if lorentz:
                 gamma = 1.0/np.sqrt(1 - vrip**2)
@@ -279,12 +282,15 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
                 dxp = np.gradient(xp,tp)
 
                 sampled_lorentz = [tp,xp,vp,dxp]
-                derived_quantities['lorentz'+str(k)] = sampled_lorentz
+                summary['lorentz'+str(k)] = sampled_lorentz
                 
                 labels = ['$t^p\quad (a.u.)$','$x^p_{max}\quad (a.u.)$','$dx^p_{max}/dt^p\quad (a.u.)$','$dx^p_{max}/dt^p\quad (a.u.)$']
                 savens = ['x_bis','v_bis','xp_bis']
                 for i in range(1,len(sampled_lorentz)):
-                    plot_single(sampled_lorentz[0],sampled_lorentz[i],xlabel=labels[0],ylabel=labels[i],
+                    tpl = tp
+                    if i==2:
+                        tpl = tp[1:]
+                    plot_single(tpl,sampled_lorentz[i],xlabel=labels[0],ylabel=labels[i],
                         figspath=figspath,figname=base_name+'lorentz_'+savens[i-1])
 
             plot_single(sampled[6::sampling,0],sampled[6::sampling,1],ylabel='$x_{max}\quad (a.u.)$',
@@ -310,47 +316,48 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
 
     if not os.path.exists(summarypath): os.makedirs(summarypath)
     ndirs = len(outdirs)
-    plot_summary(0,1,derived_quantities,ndirs=ndirs,ylabel='$x_{max}\quad (a.u.)$',
+    plot_summary(0,1,summary,ndirs=ndirs,ylabel='$x_{max}\quad (a.u.)$',
                 figspath=summarypath,figname='x_bis')
-    plot_summary(0,2,derived_quantities,ndirs=ndirs,ylabel='$dx_{max}/dt\quad (a.u.)$',
+    plot_summary(0,2,summary,ndirs=ndirs,ylabel='$dx_{max}/dt\quad (a.u.)$',
                 figspath=summarypath,figname='dxdt_bis',ylim=[0.4,0.8])
-    plot_summary(0,3,derived_quantities,ndirs=ndirs,ylabel='$dI_{max}/dt\quad (a.u.)$',
+    plot_summary(0,3,summary,ndirs=ndirs,ylabel='$dI_{max}/dt\quad (a.u.)$',
                 figspath=summarypath,figname='didt_bis')
-    plot_summary(0,4,derived_quantities,ndirs=ndirs,ylabel='$d|S|_{max}/dt\quad (a.u.)$',
+    plot_summary(0,4,summary,ndirs=ndirs,ylabel='$d|S|_{max}/dt\quad (a.u.)$',
                 figspath=summarypath,figname='dsdt_bis')
-    plot_summary(0,5,derived_quantities,ndirs=ndirs,ylabel='$|S|_{max}\quad (a.u.)$',
+    plot_summary(0,5,summary,ndirs=ndirs,ylabel='$|S|_{max}\quad (a.u.)$',
                 figspath=summarypath,figname='s_bis')
-
+    plot_summary(0,6,summary,ndirs=ndirs,ylabel='$I_{max}\quad (a.u.)$',
+                figspath=summarypath,figname='i_bis')
     if lorentz:
-        plot_summary(0,1,derived_quantities,ndirs=ndirs,dictsrc='lorentz',
+        plot_summary(0,1,summary,ndirs=ndirs,dictsrc='lorentz',
             xlabel='$t^p\quad (a.u.)$',ylabel='$x^p_{max}\quad (a.u.)$',
             figspath=summarypath,figname='lorentz_x_bis')
-        plot_summary(0,2,derived_quantities,ndirs=ndirs,dictsrc='lorentz',
+        plot_summary(0,2,summary,p=1,ndirs=ndirs,dictsrc='lorentz',
             xlabel='$t^p\quad (a.u.)$',ylabel='$dx^p_{max}/dt^p\quad (a.u.)$',
             figspath=summarypath,figname='lorentz_vp_bis')
-        plot_summary(0,3,derived_quantities,ndirs=ndirs,dictsrc='lorentz',
+        plot_summary(0,3,summary,ndirs=ndirs,dictsrc='lorentz',
             xlabel='$t^p\quad (a.u.)$',ylabel='$dx^p_{max}/dt^p\quad (a.u.)$',
             figspath=summarypath,figname='lorentz_dxdt_bis')
 
     if save_mat:
-        summary={'derived':derived_quantities}
         savemat(os.path.join(figspath,base_name+'summary'),summary)
 
-def plot_summary(x,y,dictionary,ndirs=4,dictsrc='bis',label_base='Problem',xlabel='$t\quad (ct)^{-1}$',ylabel='y',shape='--',figspath='./_output',figname='figure',ylim=None):
+def plot_summary(x,y,dictionary,ndirs=4,p=0,dictsrc='bis',label_base='$v^0=$',xlabel='$t\quad (ct)^{-1}$',ylabel='y',shape='--',figspath='./_output',figname='figure',ylim=None):
     plt.close('all')
     plt.figure()
     f, ax = plt.subplots(1, 1,sharex=True)
     ax.hold(True)
+    chival=[0.55,0.59,0.60,0.61,0.63]
     for k in range(ndirs):
-        x = dictionary[dictsrc+str(k)][x]
-        y = dictionary[dictsrc+str(k)][y]
-        ax.plot(x,y,shape,label=label_base+' $'+str(k+1)+'$')
-    
+        xx = dictionary[dictsrc+str(k)][x][p:]
+        yy = dictionary[dictsrc+str(k)][y]
+        ax.plot(xx,yy,shape,label=label_base+' $'+str(chival[k])+'$')
+
     ax.set_ylabel(ylabel)
     ax.set_xlabel(xlabel)
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.legend(loc='best',frameon=False)
+    ax.legend(frameon=False,loc='upper center', bbox_to_anchor=(0.5, -0.15),ncol=len(chival))
     plt.draw()
     plt.savefig(os.path.join(figspath,figname+'.eps'),format='eps',dpi=320,bbox_inches='tight')
     plt.close()
