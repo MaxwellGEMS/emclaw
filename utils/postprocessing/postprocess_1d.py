@@ -27,7 +27,7 @@ from scipy.io import loadmat,savemat
 from matplotlib.streamplot import  streamplot
 
 # plot frame_plot_range together, define range
-frame_plot_range = range(1,101,1)
+frame_plot_range = range(1,91,1)
 
 def get_cmap(colormap='jet',num_colors=100):
     cmap = cm  = plt.get_cmap(colormap)
@@ -48,7 +48,7 @@ def get_color(value,cmap,vmin=0.0,vmax=10.0,num_colors=100):
     colorVal  = cmap[np.where(values>=value)[0][0]]
     return colorVal
 
-def waterfall_plot(q,x,sampling=10,cmap=None,num_colors=100,outdir='./',outname='waterfall',format='eps',cbar_label='$|q| (a.u.)$'):
+def waterfall_plot(q,x,a=None,sampling=10,cmap=None,num_colors=100,outdir='./',outname='waterfall',format='eps',cbar_label='$|q| (a.u.)$'):
     plt.figure()
     fig = plt.figure(facecolor='white')
     ax = plt.axes(frameon=False)
@@ -64,6 +64,8 @@ def waterfall_plot(q,x,sampling=10,cmap=None,num_colors=100,outdir='./',outname=
             colorVal = get_color(value=q[n,:].max(),cmap=cmap,vmax=vmax+.1,num_colors=num_colors)
 
         ax.plot(x,q[n,:]+n/2.0,label=str(n),color=colorVal,alpha=0.7)
+        if a is not None:
+            ax.plot(x,10.0*(a[n,:]-1.5)+n/2.0,label=str(n),color='g',alpha=0.7,linewidth=1.0)
 
     for tic in ax.yaxis.get_major_ticks():
         tic.tick1On = tic.tick2On = False
@@ -77,8 +79,6 @@ def waterfall_plot(q,x,sampling=10,cmap=None,num_colors=100,outdir='./',outname=
     ymin, ymax = ax.get_yaxis().get_view_interval()
     ax.add_artist(Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=1.5))
     ax.set_xlabel('$x\quad (a.u.)$')
-    #plt.patch.set_visible(False)
-    #plt.axis('off')
     plt.draw()
 
     plt.savefig(os.path.join(outdir,outname+'.'+format),format=format,dpi=320,bbox_inches='tight')
@@ -128,14 +128,13 @@ def poly_plot(verts,cmap=None,sampled=None,view_angles=[10,270],outdir='./',outn
         plt.savefig(os.path.join(outdir,fig_name+'.'+format),format=format,dpi=320,bbox_inches='tight')
     return
 
-def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=True,poly_verts=True,read_aux=False):
+def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=True,poly_verts=True):
     # create instance of solution object
     num_frames = len(frame_plot_range)
     solution = Solution()
     Q_map_temp = []
-    derived_quantities =  {}
-
-    if read_aux: aux_map_temp = []
+    aux_map_temp = []
+    derived_quantities = {}
     if vecmagnitude: I_map_temp = []
     if poynting: S_map_temp = []
     if poly_verts: verts = []
@@ -146,13 +145,17 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
     for f,frame in enumerate(frame_plot_range):
 
         solution = Solution()
-        solution.read(frame,path=path,file_format='petsc',read_aux=False)
+        solution.read(frame,path=path,file_format='petsc',read_aux=True)
 
         x = solution.state.grid.x.centers;
         q = solution.state.get_q_global()
+        aux = solution.state.get_aux_global()[0:2,:]
 
         for n,qn in enumerate(q):
             Q_map_temp = np.append(Q_map_temp,qn)
+
+        for n,auxn in enumerate(aux):
+            aux_map_temp = np.append(aux_map_temp,auxn)
 
         sampled[f,0] = solution.t
         if len(x[q[0]==q[0].max()])==1:
@@ -179,6 +182,7 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
             verts.append(list(zip(x,I)))
 
     Q = Q_map_temp.reshape((num_frames,len(q),Q_map_temp.size/(len(q)*num_frames)))
+    A = aux_map_temp.reshape((num_frames,len(aux),aux_map_temp.size/(len(aux)*num_frames)))
 
     if vecmagnitude:
         I = (I_map_temp.reshape((num_frames,I_map_temp.size/num_frames)))
@@ -195,16 +199,16 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
     derived_quantities['t'] = sampled[:,0]
     derived_quantities['sampled'] = sampled
 
-    return Q,num_frames,derived_quantities
+    return Q,A,num_frames,derived_quantities
 
-def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite=False,sampling=5,velocity=True,save_mat=True,poly=False,color=False,lorentz=False):
+def postprocess_1d(outdir='./_output',base_name='_res_',outsuffix='',read_aux=True,multiple=False,overwrite=False,sampling=5,velocity=True,save_mat=True,poly=False,color=False,lorentz=False):
     if multiple:
-        outdir = outdir+'*'+'_5'
+        outdir = outdir+'*'+outsuffix
 
     outdirs = sorted(glob(outdir))
     summary = {}
     print outdirs
-    summarypath = '/simdesk/sandbox/emclaw/results/1D/nl-test/_summary_5_'
+    summarypath = '/simdesk/sandbox/emclaw/results/nonlinear/norip/_summary'+outsuffix+'_b_'
     for k,dirs in enumerate(outdirs):
         print dirs
         figspath = os.path.join(dirs,'_figures')
@@ -212,21 +216,27 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
         ##### alternative for rip/norip test
         base_name_dir = dirs.split('_')
         print base_name_dir
-        #base_name = base_name_dir[-1]+'_'
-        base_name = base_name_dir[4]+'_'+base_name_dir[3]+'_'
+        base_name = base_name_dir[-1]+'_'
+        #base_name = base_name_dir[-1]+'_'+base_name_dir[-2]+'_'
         print base_name
-        figspath = os.path.join('/simdesk/sandbox/emclaw/results/1D/nl-test',base_name_dir[3])
+        figspath = os.path.join('/simdesk/sandbox/emclaw/results/nonlinear/norip/',base_name_dir[-2])
         print figspath
-        vrip = float(base_name_dir[3].split('v')[1])/100.0
-        if vrip==6349/100.0: vrip =0.6349
+        #vrip = float(base_name_dir[3].split('v')[1])/100.0
+        #if vrip==6349/100.0: vrip =0.6349
+        vrip = 1.0/np.sqrt(1.5)
         print vrip
-        base_name = base_name_dir[-1]+'_' #base_name_dir[3]+'_'+base_name_dir[4]+'_'
-
+        # base_name = base_name_dir[-1]+'_' #base_name_dir[3]+'_'+base_name_dir[4]+'_'
+        # #### alternative for sint
+        # base_name_dir = dirs.split('_')
+        # print base_name_dir
+        # base_name = base_name_dir[-1]+'_'
+        # figspath = os.path.join('/simdesk/sandbox/emclaw/results/1D/_sint',base_name_dir[-1])
+        # vrip = 0.5
         if not os.path.exists(figspath): os.makedirs(figspath)
         if not os.path.exists(binpath): os.makedirs(binpath)
-        
-        Q,num_frames,derived_quantities = assemble_q(path=dirs,vecmagnitude=True,poynting=True,poly_verts=True,frame_plot_range=frame_plot_range)
-        
+
+        Q,A,num_frames,derived_quantities = assemble_q(path=dirs,vecmagnitude=False,poynting=False,poly_verts=False,frame_plot_range=frame_plot_range)
+
         x = derived_quantities['x']
         sampled = derived_quantities['sampled']
 
@@ -234,16 +244,23 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
             colores = get_cmap(num_colors=num_frames)
         else:
             colores = None
-        
-        waterfall_plot(Q[:,0,:],x,sampling=3,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_q0',
-                cbar_label='$|q^0|_{max}\quad (a.u.)$')
-        waterfall_plot(Q[:,1,:],x,sampling=3,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_q1',
-                cbar_label='$|q^1|_{max}\quad (a.u.)$')
-        waterfall_plot(Q[:,1,:]*Q[:,0,:],x,sampling=3,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_s',
-                cbar_label='$|S|_{max}\quad (a.u.)$')
-        waterfall_plot(np.sqrt(Q[:,1,:]**2 + Q[:,0,:]**2),x,sampling=3,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_i',
-                cbar_label='$I_{max}\quad (a.u.)$')
 
+        waterfall_plot(Q[:,0,:],x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_q0',
+                cbar_label='$|q^0|_{max}\quad (a.u.)$')
+        waterfall_plot(Q[:,1,:],x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_q1',
+                cbar_label='$|q^1|_{max}\quad (a.u.)$')
+        waterfall_plot(Q[:,1,:]*Q[:,0,:],x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_s',
+                cbar_label='$|S|_{max}\quad (a.u.)$')
+        waterfall_plot(np.sqrt(Q[:,1,:]**2 + Q[:,0,:]**2),x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_i',
+                cbar_label='$I_{max}\quad (a.u.)$')
+        if read_aux:
+            print 'read'
+            waterfall_plot(10.0*np.sqrt(A[:,1,:]*A[:,0,:]),x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_n',
+                    cbar_label='$n_{max}\quad (a.u.)$')
+            waterfall_plot(Q[:,1,:]*Q[:,0,:],x,np.sqrt(A[:,1,:]*A[:,0,:]),sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_sn',
+                    cbar_label='$|S|_{max}\quad (a.u.)$')
+            waterfall_plot(np.sqrt(Q[:,1,:]**2 + Q[:,0,:]**2),x,np.sqrt(A[:,1,:]*A[:,0,:]),sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_in',
+                    cbar_label='$I_{max}\quad (a.u.)$')
         if poly:
             view_angles = [18,240,0,270,10,270,18,80]
             view_angles = np.reshape(view_angles,(len(view_angles)/2,2))
@@ -306,7 +323,7 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
                 figspath=figspath,figname=base_name+'dxdt_bis',ylim=[0.4,0.8],vrip=vrip)
 
             plot_single(tt,xx,ylabel='$x_{max}\quad (a.u.)$',
-                figspath=figspath,figname=base_name+'x_bis',xrip=vrip*tt+10.0)
+                figspath=figspath,figname=base_name+'x_bis',xrip=vrip*tt+25.0)
 
             plot_single(tt,di,ylabel='$dI_{max}/dt\quad (a.u.)$',
                 figspath=figspath,figname=base_name+'didt_bis')
@@ -342,12 +359,14 @@ def postprocess_1d(outdir='./_output',base_name='_res_',multiple=False,overwrite
     if save_mat:
         savemat(os.path.join(figspath,base_name+'summary'),summary)
 
-def plot_summary(x,y,dictionary,ndirs=4,p=0,dictsrc='bis',label_base='$v^0=$',xlabel='$t\quad (ct)^{-1}$',ylabel='y',shape='--',figspath='./_output',figname='figure',ylim=None):
+def plot_summary(x,y,dictionary,ndirs=4,p=0,dictsrc='bis',label_base='$v^{0}=$',xlabel='$t\quad (ct)^{-1}$',ylabel='y',shape='--',figspath='./_output',figname='figure',ylim=None):
     plt.close('all')
     plt.figure()
     f, ax = plt.subplots(1, 1,sharex=True)
     ax.hold(True)
     chival=[0.55,0.59,0.60,0.61,0.63]
+    #chival=[4,12,24,128]
+    #chival=[0.1,0.01,0.001,0.0]
     for k in range(ndirs):
         xx = dictionary[dictsrc+str(k)][x][p:]
         yy = dictionary[dictsrc+str(k)][y]
@@ -392,7 +411,6 @@ def plot_single(x,y,xlabel='$t\quad (ct)^{-1}$',ylabel='y',shape='--',figspath='
         plt.draw()
         plt.savefig(os.path.join(figspath,figname+'.eps'),format='eps',dpi=320,bbox_inches='tight')
         plt.close()
-
 
 if __name__ == "__main__":
     from clawpack.pyclaw import util
