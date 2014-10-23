@@ -280,9 +280,9 @@ class Material1D(Material):
         
         if self.shape.startswith('moving'):
             self.delta_velocity_e = 0.59
-            self.delta_velocity_m = self.delta_velocity_e
+            self.delta_velocity_h = self.delta_velocity_e
             self.offset_e   = 10.0
-            self.offset_m   = self.offset_e
+            self.offset_h   = self.offset_e
             self._moving    = True
 
             if 'gauss' in self.shape:
@@ -300,7 +300,7 @@ class Material1D(Material):
         self.temp_flag = temp_flag
         if temp_flag:
             self.sigma_e            = 5.0
-            self.sigma_m            = self.sigma_e
+            self.sigma_h            = self.sigma_e
             self.relative_amplitude = 0.1
             self.delta_n     = self.relative_amplitude*(self.bkg_n)
             self.delta_e     = self.delta_n
@@ -348,7 +348,7 @@ class Material1D(Material):
 
     def _x_w_offset(self,x,v=[0.0,0.0],t=0.0):
         u_x_e = x - v[0]*t - self.offset_e
-        u_x_m = x - v[1]*t - self.offset_m
+        u_x_m = x - v[1]*t - self.offset_h
 
         return u_x_e,u_x_m
 
@@ -356,22 +356,22 @@ class Material1D(Material):
                 
         eta = np.zeros( [4,len(x)], order='F')
 
-        u_x_e,u_x_m = self._x_w_offset(x,v=[self.delta_velocity_e,self.delta_velocity_m],t=t)
+        u_x_e,u_x_m = self._x_w_offset(x,v=[self.delta_velocity_e,self.delta_velocity_h],t=t)
 
         u_e_t = 2.0*((self.delta_velocity_e*u_x_e)/(self.sigma_e**2))
-        u_m_t = 2.0*((self.delta_velocity_m*u_x_m)/(self.sigma_m**2))
+        u_m_t = 2.0*((self.delta_velocity_h*u_x_m)/(self.sigma_h**2))
         u_e = (u_x_e/self.sigma_e)**2
-        u_m = (u_x_m/self.sigma_m)**2
+        u_m = (u_x_m/self.sigma_h)**2
 
         if self.averaged:
             from scipy.special import erf
             ddx = self._dx/2.0
             arg1_e = (ddx - u_x_e)/self.sigma_e
             arg2_e = (ddx + u_x_e)/self.sigma_e
-            arg1_m = (ddx - u_x_m)/self.sigma_m
-            arg2_m = (ddx - u_x_m)/self.sigma_m
+            arg1_m = (ddx - u_x_m)/self.sigma_h
+            arg2_m = (ddx + u_x_m)/self.sigma_h
             eta[0,:] = (1/self._dx)*(2.0*ddx*self.bkg_e + 0.5*self.delta_e*np.sqrt(np.pi)*self.sigma_e*(erf(arg1_e)+erf(arg2_e)))
-            eta[1,:] = (1/self._dx)*(2.0*ddx*self.bkg_h + 0.5*self.delta_h*np.sqrt(np.pi)*self.sigma_m*(erf(arg1_m)+erf(arg2_m)))
+            eta[1,:] = (1/self._dx)*(2.0*ddx*self.bkg_h + 0.5*self.delta_h*np.sqrt(np.pi)*self.sigma_h*(erf(arg1_m)+erf(arg2_m)))
         else:
             eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_e
             eta[1,:] = self.delta_h*np.exp(-u_m) + self.bkg_h
@@ -388,7 +388,7 @@ class Material1D(Material):
         u_x_e,u_x_m = self._x_w_offset(x,)
 
         u_e = (u_x_e/selfsigma_e)**2
-        u_m = (u_x_m/selfsigma_m)**2
+        u_m = (u_x_m/selfsigma_h)**2
         eta[0,:] = self.delta_e*np.exp(-u_e) + self.bkg_e
         eta[1,:] = self.delta_h*np.exp(-u_m) + self.bkg_h    
 
@@ -425,12 +425,12 @@ class Material1D(Material):
         
         eta = np.zeros( [4,len(x)], order='F')
 
-        u_x_e,u_x_m = self._x_w_offset(x,v=[self.delta_velocity_e,self.delta_velocity_m],t=t)
+        u_x_e,u_x_m = self._x_w_offset(x,v=[self.delta_velocity_e,self.delta_velocity_h],t=t)
 
         eta[0,:] = (self.delta_e/2.0)*(1.0 + np.tanh(u_x_e)) + self.bkg_e
         eta[1,:] = (self.delta_h/2.0)*(1.0 + np.tanh(u_x_m)) + self.bkg_h
         eta[2,:] = -(self.delta_e*self.delta_velocity_e/(2.0*self.sigma_e))/(np.cosh(u_x_e)**2)
-        eta[3,:] = -(self.delta_h*self.delta_velocity_m/(2.0*self.sigma_m))/(np.cosh(u_x_m)**2)
+        eta[3,:] = -(self.delta_h*self.delta_velocity_h/(2.0*self.sigma_h))/(np.cosh(u_x_m)**2)
 
         return eta
 
@@ -543,7 +543,7 @@ class Material2D(Material):
             self.delta_function    = np.cos
             self.delta_function_dt = np.sin
             self.delta_sign_dt     = -1.0
-            
+            self.delta_angular_velocity = None
             self.delta_smooth_function = self._gaussianf
             self.delta_smooth_width  = 5.0
             self.delta_smooth_length = 5.0
@@ -713,6 +713,27 @@ class Material2D(Material):
 
         return s
 
+    def _rotating_sinsin(self,x,y,t):
+
+        p = self.delta_angular_velocity
+        o = self.delta_omega
+        l = self.delta_smooth_length
+        w = self.delta_smooth_width
+        xo = l/2
+        yo = w/2
+
+        x = self.delta_smooth_np[0]*(x-xo)*np.pi/xo
+        y = self.delta_smooth_np[1]*(y-yo)*np.pi/yo
+
+        s  = np.sin(o*t)*(np.sin(x*np.cos(p*t) - y*np.sin(p*t))*np.sin(x*np.sin(p*t) + y*np.cos(p*t)))
+
+        ds = -p*np.cos(x*np.cos(p*t) - y*np.sin(p*t))*np.sin(o*t)*(y*np.cos(p*t) + x*np.sin(p*t))* \
+            np.sin(y*np.cos(p*t) + x*np.sin(p*t)) + (p*np.cos(y*np.cos(p*t) + x*np.sin(p*t))* \
+            np.sin(o*t)*(x*np.cos(p*t) - y*np.sin(p*t)) + o*np.cos(o*t)*np.sin(y*np.cos(p*t) + x*np.sin(p*t)))* \
+            np.sin(x*np.cos(p*t) - y*np.sin(p*t))
+        
+        return s,ds
+
     def _gaussian(self,x,y,t=0):
         
         eta = np.zeros( [6,x.shape[0],y.shape[1]], order='F')
@@ -737,7 +758,7 @@ class Material2D(Material):
         return eta
 
     def _tanh_rip(self,x,t):
-        
+
         eta = np.zeros( [6,x.shape[0],y.shape[1]], order='F')
         _r2 = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
 
@@ -818,7 +839,12 @@ class Material2D(Material):
         
         spand = ((y>=yid)*(y<=(yid+self.delta_width)))*((x>=xid)*(x<=(xid+self.delta_length)))
 
-        w,dw = self._get_vibrate(x=x,y=y,span=spand,t=t)
+        if self.delta_angular_velocity is None:
+            w,dw = self._get_vibrate(x=x,y=y,span=spand,t=t)
+        else:
+            w,dw = self._rotating_sinsin(x,y,t)
+            w  = w*spand
+            dw = dw*spand
 
         for i in range(0,3): 
             eta[i]   = self.bkg_eta[i] + self.fiber_eta[i]*span + self.delta_eta[i]*w
