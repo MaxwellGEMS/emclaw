@@ -143,6 +143,36 @@ def setplot(plotdata):
     plotitem.add_colorbar = True
     plotitem.show = True
 
+    # Figure for contour plot
+    plotfigure = plotdata.new_plotfigure(name='n', figno=6)
+    # Set up for axes in this figure:
+    plotaxes = plotfigure.new_plotaxes()
+    plotaxes.xlimits = 'auto'
+    plotaxes.ylimits = 'auto'
+    plotaxes.title = '$n$'
+
+    # Set up for item on these axes:
+    plotitem = plotaxes.new_plotitem(plot_type='2d_pcolor')
+    plotitem.plot_var = refind
+    plotitem.pcolor_cmap = colormaps.jet
+    plotitem.add_colorbar = True
+    plotitem.show = True
+
+    # Figure for contour plot
+    plotfigure = plotdata.new_plotfigure(name='dn', figno=7)
+    # Set up for axes in this figure:
+    plotaxes = plotfigure.new_plotaxes()
+    plotaxes.xlimits = 'auto'
+    plotaxes.ylimits = 'auto'
+    plotaxes.title = '$n$'
+
+    # Set up for item on these axes:
+    plotitem = plotaxes.new_plotitem(plot_type='2d_pcolor')
+    plotitem.plot_var = dn
+    plotitem.pcolor_cmap = colormaps.jet
+    plotitem.add_colorbar = True
+    plotitem.show = True
+
     # Parameters used only when creating html and/or latex hardcopy
     # e.g., via visclaw.frametools.printframes:
     plotdata.printfigs = True                # print figures
@@ -161,6 +191,10 @@ def setplot(plotdata):
 def refind(current_data):
     n = np.sqrt(current_data.aux[1,:,:]*current_data.aux[2,:,:])
     return n
+
+def dn(current_data):
+    dn = current_data.aux[4,:,:]
+    return dn
 
 def efield(current_data):
     ef = current_data.q[1,:,:]

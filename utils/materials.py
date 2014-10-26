@@ -1,4 +1,6 @@
 import numpy as np
+import pickle
+import os
 
 dim = {}
 dim['xyz'] = [0,1,2]
@@ -12,7 +14,22 @@ dim['z'  ] = [2]
 def user_material():
     pass
 
-class Material:
+class Material(object):
+
+    def save(self):
+        print self._outdir
+        """save class as self.name.txt"""
+        try:
+            os.makedirs(self._outdir)
+        except:
+            pass
+        d = self
+        d.function = None
+        d.delta_function = None
+        d.delta_smooth_function = None
+        f = open(os.path.join(self._outdir,self.name + '.saved'),'w')
+        pickle.dump(d, f)
+        f.close()
 
     def _set_vacuum(self):
         if self.normalized_vacuum:
@@ -68,7 +85,6 @@ class Material:
                         strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
         strt = strt + r'\end{tabular}' + '\n' + r'\end{table}' + '\n'
         import uuid
-        import os
         try:
             os.makedirs(self._outdir)
         except:
@@ -255,12 +271,127 @@ class Material:
 
         return w,dw
 
-    def __init__(self):
-        self.normalized_vacuum = True
-        self.shape    = None
+    def __init__(self,normalized=True,shape='homogeneous'):
+        self.normalized_vacuum = normalized
+        self.shape    = shape
         self.custom   = False
-        self.averaged = True
-        self._outdir  = './'
+        self.averaged = False
+        self.nonlinear = True
+        self.bkg_eta  = np.ones([self.num_aux/2])
+        self.delta    = np.ones([self.num_aux/2])
+        self.bkg_n    = np.ones([self.num_dim])
+        self.n_max    = np.ones([self.num_dim])
+        self._outdir  = './_output'
+        self.name     = 'material'
+        self._moving  = False
+        self.v        = 1.0
+        self.update_at_each_stage = False
+        self.function  = None
+    
+    def general_setup(self,options={}):
+        self._unpack_options(options=options)
+        self._set_vacuum()
+
+        temp_flag = False
+        if self.custom:
+            self.custom_function = user_material
+
+        if self.shape=='homogeneous':
+            self.function = self._homogeneous
+        
+        if self.shape.startswith('moving'):
+            self.offset         = np.zeros([self.num_dim,self.num_aux/2])
+            self.delta_velocity = np.ones([self.num_dim,self.num_aux/2])
+            self._moving        = True
+            self.update_at_each_stage = True
+
+            if 'gauss' in self.shape:
+                self.function = self._gaussian_rip
+            
+            if 'tanh' in self.shape:
+                self.function = self._tanh_rip
+
+            self.offset[0,:].fill(10.0)
+            self.delta.velocity[0,:].fill(0.59)
+        
+        if 'gauss' in self.shape:
+            temp_flag = True
+
+        if 'tanh' in self.shape:
+            temp_flag = True
+
+        self.temp_flag = temp_flag
+        if temp_flag:
+            self.delta_sigma        = 5.0*np.ones([self.num_dim,self.num_aux/2])
+            self.relative_amplitude = 0.1*np.ones([self.num_aux/2])
+            self.delta_eta          = self.relative_amplitude*self.bkg_eta
+            self.em_equal           = True
+
+            if not self._moving:
+                self.function   = self._gaussian
+                self.delta_sign = 1.0
+            
+            self._rip_precalc = False
+
+        if self.shape.startswith('fiber'):
+            self.fiber_eta = np.ones([self.num_aux/2])
+            self.fiber_corner = np.zeros([self.num_dim])
+            self.fiber_corner[0] = -5.0
+            self.fiber_width  = 5.0
+            self.fiber_length = 100.0
+
+        if self.shape=='fiber single':
+            self.function     = self._single_fiber
+
+        if self.shape=='fiber double':
+            self.fiber_eta    = np.ones([2,self.num_aux/2])
+            self.fiber_corner = np.zeros([2,self.num_dim])
+            self.fiber_width  = 5.0*np.ones([self.num_aux/2])
+            self.fiber_length = 100.0*np.ones([self.num_aux/2])
+            self.function     = self._double_fiber
+
+        if self.shape=='fiber vibrate':
+            self.delta_width  = 5.0
+            self.delta_length = 5.0
+            self.delta_corner = np.zeros([self.num_dim])
+            self.delta_corner[0] = 5.0
+            self.delta_eta    = np.ones([self.num_aux/2])
+            self.delta_smooth = False
+            self.delta_omega  = 2.0*np.pi
+            self.delta_function    = np.cos
+            self.delta_function_dt = np.sin
+            self.delta_sign_dt     = -1.0
+            self.delta_angular_velocity = None
+            self.delta_smooth_function = self._gaussianf
+            self.delta_smooth_width  = 5.0
+            self.delta_smooth_length = 5.0
+            self.delta_smooth_np     = 2.0*np.ones([self.num_dim])
+            self.function = self._oscillate
+            
+            self.update_at_each_stage = True
+        
+        if self.shape=='expansion':
+            self.delta_radii          = 5.0*np.ones([self.num_aux/2])
+            self.delta_expansion_rate = np.zeros([self.num_aux/2])
+            self.delta_velocity       = np.zeros([self.num_dim,self.num_aux/2])
+            self.offset               = np.zeros([self.num_dim,self.num_aux/2])
+            self.delta_sigma          = np.ones([self.num_dim,self.num_aux/2])
+            self.delta_eta            = 0.1*np.ones([self.num_aux/2])
+            self.update_at_each_stage = True
+            self.delta_sign           = 1.0
+
+            self.offset[0,:].fill(10.0)
+            self.dim = 'xy'
+            self.function = self._expanding
+
+        if self.nonlinear:
+            self.chi2 = np.zeros( [self.num_aux/2], order='F')
+            self.chi3 = np.zeros( [self.num_aux/2], order='F')
+
+        if self.metal:
+            self.metal_corners = []
+
+        return
 
 class Material1D(Material):
     def setup(self,options={}):
@@ -459,119 +590,19 @@ class Material1D(Material):
         return
 
     def __init__(self,normalized=True,shape='homogeneous'):
-        self.normalized_vacuum = normalized
+        self.num_aux = 4
+        self.num_dim = 1
+        self.options = {}
+        super(Material1D,self).__init__(normalized,shape)
+        self.dim = 'x'
         self.bkg_e = 1.0
         self.bkg_h = 1.0
-        self.shape = shape
-        self.options = {}
-        self.nonlinear = True
-        self.custom = False
-        self._moving = False
         self._dx = 1
 
 class Material2D(Material):
+
     def setup(self,options={}):
-        self._unpack_options(options=options)
-        self._set_vacuum()
-        self.bkg_n = np.ones([2])
-        self.n_max = np.ones([2])
-
-        temp_flag = False
-        if self.custom:
-            self.custom_function = user_material
-
-        if self.shape=='homogeneous':
-            self.function = self._homogeneous
-        
-        if self.shape.startswith('moving'):
-            self.delta_velocity = np.append(0.59*np.ones([1,3]),np.zeros([1,3]),axis=0)
-            self.offset  = np.append(10.0*np.ones([1,3]),np.zeros([1,3]),axis=0)
-            self._moving = True
-            self.update_at_each_stage = True
-
-            if 'gauss' in self.shape:
-                self.function = self._gaussian_rip
-            
-            if 'tanh' in self.shape:
-                self.function = self._tanh_rip
-        
-        if 'gauss' in self.shape:
-            temp_flag = True
-
-        if 'tanh' in self.shape:
-            temp_flag = True
-
-        self.temp_flag = temp_flag
-        if temp_flag:
-            self.delta_sigma = 5.0*np.ones([2,3])
-            self.relative_amplitude = 0.1*np.ones([3])
-            self.delta_eta = self.relative_amplitude*self.bkg_eta
-            self.em_equal  = True
-
-            if not self._moving:
-                self.function   = self._gaussian
-                self.delta_sign = 1.0
-            
-            self._rip_precalc = False
-
-        if self.shape.startswith('fiber'):
-            self.fiber_eta = np.ones([3])
-
-        if self.shape=='fiber single':
-            self.fiber_corner = [-5.0,0.0]
-            self.fiber_width  = 5.0
-            self.fiber_length = 100.0
-            self.function     = self._single_fiber
-
-        if self.shape=='fiber double':
-            self.fiber_eta    = np.ones([2,3])
-            self.fiber_corner = np.zeros([2,2])
-            self.fiber_width  = np.ones([2])
-            self.fiber_length = 100.0*np.ones([2])
-            self.function     = self._double_fiber
-
-        if self.shape=='fiber vibrate':
-            self.fiber_corner = [-5.0,0.0]
-            self.fiber_width  = 5.0
-            self.fiber_length = 100.0
-            self.delta_width  = 5.0
-            self.delta_length = 5.0
-            self.delta_corner = [5.0,0.0]
-            self.delta_eta    = np.ones([3])
-            self.delta_smooth = False
-            self.delta_omega  = 2.0*np.pi
-            self.delta_function    = np.cos
-            self.delta_function_dt = np.sin
-            self.delta_sign_dt     = -1.0
-            self.delta_angular_velocity = None
-            self.delta_smooth_function = self._gaussianf
-            self.delta_smooth_width  = 5.0
-            self.delta_smooth_length = 5.0
-            self.delta_smooth_np     = 2.0*np.ones([2])
-            self.function = self._oscillate
-            
-            self.update_at_each_stage = True
-        
-        if self.shape=='expansion':
-            self.delta_radii = 5.0*np.ones([2])
-            self.delta_expansion_rate = np.ones([2])
-            self.delta_velocity       = np.append(np.zeros([1,3]),np.zeros([1,3]),axis=0)
-            self.offset               = np.append(10.0*np.ones([1,3]),np.zeros([1,3]),axis=0)
-            self.delta_sigma          = np.ones([2,3])
-            self.delta_eta            = 0.1*np.ones([3])
-            self.update_at_each_stage = True
-            self.delta_sign           = 1.0
-            self.dim = 'xy'
-            self.function = self._expanding
-
-        if self.nonlinear:
-            self.chi2 = np.zeros( [3], order='F')
-            self.chi3 = np.zeros( [3], order='F')
-
-        if self.metal:
-            self.metal_corners = []
-
-        return
+        self.general_setup()
 
     def set_fiber_single(self):
         self.shape = 'fiber single'
@@ -860,115 +891,111 @@ class Material2D(Material):
         return eta
 
     def __init__(self,normalized=True,shape='homogeneous',metal=False):
-        self.normalized_vacuum = normalized
-        self.bkg_eta = np.ones([3])
-        self.shape   = shape
+        self.num_aux = 6
+        self.num_dim = 2
         self.options = {}
-        self.nonlinear = True
-        self.custom    = False
-        self._moving   = False
+        super(Material2D,self).__init__(normalized,shape)
         self.dim = 'x'
-        self.v = 1.0
-        self.update_at_each_stage = False
         self.metal = metal
         self._dx = 1.0
         self._dy = 1.0
 
 class Material3D(Material):
     def setup(self,options={}):
-        self._unpack_options(options=options)
-        self._set_vacuum()
-        self.bkg_n = np.ones([3])
-        self.n_max = np.ones([3])
+        self.general_setup()
+        # self._unpack_options(options=options)
+        # self._set_vacuum()
+        # self.bkg_n = np.ones([3])
+        # self.n_max = np.ones([3])
 
-        temp_flag = False
-        if self.custom:
-            self.custom_function = user_material
+        # temp_flag = False
+        # if self.custom:
+        #     self.custom_function = user_material
 
-        if self.shape=='homogeneous':
-            self.function = self._homogeneous
+        # if self.shape=='homogeneous':
+        #     self.function = self._homogeneous
         
-        if self.shape.startswith('moving'):
-            self.delta_velocity = np.zeros([3,6])
-            self.offset   = np.zeros([3,6])
+        # if self.shape.startswith('moving'):
+        #     self.delta_velocity = np.zeros([3,6])
+        #     self.offset   = np.zeros([3,6])
 
-            self.delta_velocity[0,:].fill(0.59)
-            self.offset[0,:].fill(10.0)
+        #     self.delta_velocity[0,:].fill(0.59)
+        #     self.offset[0,:].fill(10.0)
 
-            self._moving  = True
-            self.update_at_each_stage = True
+        #     self._moving  = True
+        #     self.update_at_each_stage = True
 
-            if 'gauss' in self.shape:
-                self.function = self._gaussian_rip
+        #     if 'gauss' in self.shape:
+        #         self.function = self._gaussian_rip
             
-            if 'tanh' in self.shape:
-                self.function = self._tanh_rip
+        #     if 'tanh' in self.shape:
+        #         self.function = self._tanh_rip
         
-        if 'gauss' in self.shape:
-            temp_flag = True
+        # if 'gauss' in self.shape:
+        #     temp_flag = True
 
-        if 'tanh' in self.shape:
-            temp_flag = True
+        # if 'tanh' in self.shape:
+        #     temp_flag = True
 
-        self.temp_flag = temp_flag
-        if temp_flag:
-            self.sigma = 5.0*np.ones([3,6])
-            self.relative_amplitude = 0.1*np.ones([6])
-            self.delta_eta = self.relative_amplitude*self.bkg_eta
-            self.em_equal = True
+        # self.temp_flag = temp_flag
+        # if temp_flag:
+        #     self.sigma = 5.0*np.ones([3,6])
+        #     self.relative_amplitude = 0.1*np.ones([6])
+        #     self.delta_eta = self.relative_amplitude*self.bkg_eta
+        #     self.em_equal = True
 
-            if not self._moving:
-                self.function = self._gaussian
+        #     if not self._moving:
+        #         self.function = self._gaussian
             
-            self._rip_precalc = False
+        #     self._rip_precalc = False
 
-        if self.shape.startswith('fiber'):
-            self.fiber_eta = np.ones([6])
+        # if self.shape.startswith('fiber'):
+        #     self.fiber_eta = np.ones([6])
 
-        if self.shape=='fiber single':
-            self.fiber_corner = [-5.0,0.0,0.0]
-            self.fiber_width  = 5.0
-            self.fiber_height = 5.0
-            self.fiber_length = 100.0
-            self.function = self._single_fiber
+        # if self.shape=='fiber single':
+        #     self.fiber_corner = [-5.0,0.0,0.0]
+        #     self.fiber_width  = 5.0
+        #     self.fiber_height = 5.0
+        #     self.fiber_length = 100.0
+        #     self.function = self._single_fiber
 
-        if self.shape=='fiber double':
-            self.fiber_corner = np.append([5.0,0,0],[0,0,0],axis=1).reshape(2,3)
-            self.fiber_width  = np.ones([2])
-            self.fiber_height = np.ones([2])
-            self.fiber_length = 100.0*np.ones([2])
-            self.function = self._double_fiber
+        # if self.shape=='fiber double':
+        #     self.fiber_corner = np.append([5.0,0,0],[0,0,0],axis=1).reshape(2,3)
+        #     self.fiber_width  = np.ones([2])
+        #     self.fiber_height = np.ones([2])
+        #     self.fiber_length = 100.0*np.ones([2])
+        #     self.function = self._double_fiber
 
-        if self.shape=='fiber vibrate':
-            self.fiber_corner = [-5.0,0.0,0.0]
-            self.fiber_width  = 5.0
-            self.fiber_height = 5.0
-            self.fiber_length = 100.0
-            self.delta_width  = 5.0
-            self.delta_height = 5.0
-            self.delta_length = 10.0
-            self.delta_corner = [5.0,0.0,0.0]
-            self.delta_eta    = np.ones([6])
-            self.delta_smooth = False
-            self.delta_omega  = 2.0*np.pi
-            self.delta_function    = np.cos
-            self.delta_function_dt = np.sin
-            self.delta_sign_dt     = -1.0
-            self.delta_smooth_function = self._gaussianf
-            self.delta_smooth_width  = 5.0
-            self.delta_smooth_length = 10.0
-            self.delta_smooth_height = 5.0
-            self.function = self._oscillate
-            self.update_at_each_stage = True
+        # if self.shape=='fiber vibrate':
+        #     self.fiber_corner = [-5.0,0.0,0.0]
+        #     self.fiber_width  = 5.0
+        #     self.fiber_height = 5.0
+        #     self.fiber_length = 100.0
+        #     self.delta_width  = 5.0
+        #     self.delta_height = 5.0
+        #     self.delta_length = 10.0
+        #     self.delta_corner = [5.0,0.0,0.0]
+        #     self.delta_eta    = np.ones([6])
+        #     self.delta_smooth = False
+        #     self.delta_omega  = 2.0*np.pi
+        #     self.delta_function    = np.cos
+        #     self.delta_function_dt = np.sin
+        #     self.delta_sign_dt     = -1.0
+        #     self.delta_smooth_function = self._gaussianf
+        #     self.delta_smooth_width  = 5.0
+        #     self.delta_smooth_length = 10.0
+        #     self.delta_smooth_height = 5.0
+        #     self.function = self._oscillate
+        #     self.update_at_each_stage = True
         
-        if self.nonlinear:
-            self.chi2 = np.zeros( [6], order='F')
-            self.chi3 = np.zeros( [6], order='F')
+        # if self.nonlinear:
+        #     self.chi2 = np.zeros( [6], order='F')
+        #     self.chi3 = np.zeros( [6], order='F')
 
-        if self.metal:
-            self.metal_corners = []
+        # if self.metal:
+        #     self.metal_corners = []
 
-        return
+        # return
 
     def set_fiber_single(self):
         self.shape = 'fiber single'
@@ -1203,14 +1230,12 @@ class Material3D(Material):
         return eta
 
     def __init__(self,normalized=True,shape='homogeneous',metal=False):
-        self.normalized_vacuum = normalized
-        self.bkg_eta = np.ones([6])
-        self.shape = shape
+        self.num_aux = 12
+        self.num_dim = 3
         self.options = {}
-        self.nonlinear = True
-        self.custom = False
-        self._moving = False
+        super(Material2D,self).__init__(normalized,shape)
         self.dim = 'x'
-        self.v = 1.0
-        self.update_at_each_stage = False
         self.metal = metal
+        self._dx = 1.0
+        self._dy = 1.0
+        self._dz = 1.0

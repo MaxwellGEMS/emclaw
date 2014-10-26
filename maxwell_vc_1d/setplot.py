@@ -33,7 +33,7 @@ def setplot(plotdata):
     plotaxes.title = ''
 
     plotitem = plotaxes.new_plotitem(plot_type='1d_plot')
-    plotitem.plot_var = ehfields 
+    plotitem.plot_var = 0 
     plotitem.plotstyle = '-'
     plotitem.color = 'b'
     plotitem.show = True       # show on plot?
