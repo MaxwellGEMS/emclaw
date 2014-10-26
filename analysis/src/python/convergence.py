@@ -411,7 +411,7 @@ class Errors2D(Convergence):
             qclaw,xclaw,delta = self.getClaw(dirs)
 
             # get the error with respect to the finest solution
-            finest_difference = self.self_convergence(qclaw,qfinest,deltafinest)
+            finest_difference = self.self_convergence(qclaw,qfinest,delta)
             
             # get the error with respect to the refined solution
             if enddir<self.basemax:
