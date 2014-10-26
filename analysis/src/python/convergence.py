@@ -226,7 +226,7 @@ class Convergence(object):
 
         for var in self.matvar:
             setattr(self, var, matdict[var][:,-1])
-        
+
         q_exact = matdict['qs'][:,-1]
         x_exact = matdict['xs'][:,-1]
 
@@ -310,7 +310,7 @@ class Errors1D(Convergence):
             global_difference = self.analytic_convergence(xclaw,qclaw,xmat,qmat,delta,local=False)
 
             # get the error with respect to the finest solution
-            finest_difference = self.analytic_convergence(xclaw,qclaw,xfinest,qfinest,deltafinest,local=False,finest=True)
+            finest_difference = self.self_convergence(qclaw,qfinest,delta)
             
             # get the error with respect to the refined solution
             if enddir<self.basemax:
@@ -365,7 +365,7 @@ class Errors1D(Convergence):
                 print strt
         except:
             pass
-        
+
         self.summary['convergence'] = results
         self.summary['log_convergence'] = np.log10(results)
         self.summary['linear_fit'] = rate
@@ -461,7 +461,7 @@ class Errors2D(Convergence):
                 print strt
         except:
             pass
-        
+
         self.summary['convergence'] = results
         self.summary['log_convergence'] = np.log10(results)
         self.summary['linear_fit'] = rate
