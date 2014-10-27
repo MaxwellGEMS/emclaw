@@ -890,114 +890,6 @@ class Material2D(Material):
 class Material3D(Material):
     def setup(self,options={}):
         self.general_setup()
-        # self._unpack_options(options=options)
-        # self._set_vacuum()
-        # self.bkg_n = np.ones([3])
-        # self.n_max = np.ones([3])
-
-        # temp_flag = False
-        # if self.custom:
-        #     self.custom_function = user_material
-
-        # if self.shape=='homogeneous':
-        #     self.function = self._homogeneous
-        
-        # if self.shape.startswith('moving'):
-        #     self.delta_velocity = np.zeros([3,6])
-        #     self.offset   = np.zeros([3,6])
-
-        #     self.delta_velocity[0,:].fill(0.59)
-        #     self.offset[0,:].fill(10.0)
-
-        #     self._moving  = True
-        #     self.update_at_each_stage = True
-
-        #     if 'gauss' in self.shape:
-        #         self.function = self._gaussian_rip
-            
-        #     if 'tanh' in self.shape:
-        #         self.function = self._tanh_rip
-        
-        # if 'gauss' in self.shape:
-        #     temp_flag = True
-
-        # if 'tanh' in self.shape:
-        #     temp_flag = True
-
-        # self.temp_flag = temp_flag
-        # if temp_flag:
-        #     self.sigma = 5.0*np.ones([3,6])
-        #     self.relative_amplitude = 0.1*np.ones([6])
-        #     self.delta_eta = self.relative_amplitude*self.bkg_eta
-        #     self.em_equal = True
-
-        #     if not self._moving:
-        #         self.function = self._gaussian
-            
-        #     self._rip_precalc = False
-
-        # if self.shape.startswith('fiber'):
-        #     self.fiber_eta = np.ones([6])
-
-        # if self.shape=='fiber single':
-        #     self.fiber_corner = [-5.0,0.0,0.0]
-        #     self.fiber_width  = 5.0
-        #     self.fiber_height = 5.0
-        #     self.fiber_length = 100.0
-        #     self.function = self._single_fiber
-
-        # if self.shape=='fiber double':
-        #     self.fiber_corner = np.append([5.0,0,0],[0,0,0],axis=1).reshape(2,3)
-        #     self.fiber_width  = np.ones([2])
-        #     self.fiber_height = np.ones([2])
-        #     self.fiber_length = 100.0*np.ones([2])
-        #     self.function = self._double_fiber
-
-        # if self.shape=='fiber vibrate':
-        #     self.fiber_corner = [-5.0,0.0,0.0]
-        #     self.fiber_width  = 5.0
-        #     self.fiber_height = 5.0
-        #     self.fiber_length = 100.0
-        #     self.delta_width  = 5.0
-        #     self.delta_height = 5.0
-        #     self.delta_length = 10.0
-        #     self.delta_corner = [5.0,0.0,0.0]
-        #     self.delta_eta    = np.ones([6])
-        #     self.delta_smooth = False
-        #     self.delta_omega  = 2.0*np.pi
-        #     self.delta_function    = np.cos
-        #     self.delta_function_dt = np.sin
-        #     self.delta_sign_dt     = -1.0
-        #     self.delta_smooth_function = self._gaussianf
-        #     self.delta_smooth_width  = 5.0
-        #     self.delta_smooth_length = 10.0
-        #     self.delta_smooth_height = 5.0
-        #     self.function = self._oscillate
-        #     self.update_at_each_stage = True
-        
-        # if self.nonlinear:
-        #     self.chi2 = np.zeros( [6], order='F')
-        #     self.chi3 = np.zeros( [6], order='F')
-
-        # if self.metal:
-        #     self.metal_corners = []
-
-        # return
-
-    def set_fiber_single(self):
-        self.shape = 'fiber single'
-        self.setup()
-        return
-
-    def set_fiber_double(self):
-        self.shape = 'fiber double'
-        self.setup()
-        return
-
-    def set_fiber_single_sine(self):
-        self.shape = 'fiber single sine'
-        self.setup()
-        return
 
     def _calculate_n(self):
         
@@ -1031,17 +923,17 @@ class Material3D(Material):
             p = dims[0]
             for i in range(0,6):
                 _temp1 = grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t
-                _r2[i] = (_temp1/self.sigma[p,i])**2
-                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.sigma[p,i]**2)
+                _r2[i] = (_temp1/self.delta_sigma[p,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.delta_sigma[p,i]**2)
 
         if len(self.dim)==2:
             p,q = dims
             for i in range(0,6):
                 _temp1 = grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t
                 _temp2 = grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t
-                _r2[i] = (_temp1/self.sigma[p,i])**2 + (_temp2/self.sigma[q,i])**2
-                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.sigma[p,i]**2) + \
-                    (_temp2*self.delta_velocity[q,i])/(self.sigma[q,i]**2)
+                _r2[i] = (_temp1/self.delta_sigma[p,i])**2 + (_temp2/self.delta_sigma[q,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.delta_sigma[p,i]**2) + \
+                    (_temp2*self.delta_velocity[q,i])/(self.delta_sigma[q,i]**2)
 
         if len(self.dim)==3:
             p,q,r = dims
@@ -1049,10 +941,10 @@ class Material3D(Material):
                 _temp1 = grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t
                 _temp2 = grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t
                 _temp3 = grid[r] - self.offset[r,i] - self.delta_velocity[r,i]*t
-                _r2[i] = (_temp1/self.sigma[p,i])**2 + (_temp2/self.sigma[q,i])**2 + (_temp3/self.sigma[r,i])**2
-                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.sigma[p,i]**2) + \
-                    (_temp2*self.delta_velocity[q,i])/(self.sigma[q,i]**2) + \
-                    (_temp3*self.delta_velocity[r,i])/(self.sigma[r,i]**2)
+                _r2[i] = (_temp1/self.delta_sigma[p,i])**2 + (_temp2/self.delta_sigma[q,i])**2 + (_temp3/self.delta_sigma[r,i])**2
+                _rt[i] = (_temp1*self.delta_velocity[p,i])/(self.delta_sigma[p,i]**2) + \
+                    (_temp2*self.delta_velocity[q,i])/(self.delta_sigma[q,i]**2) + \
+                    (_temp3*self.delta_velocity[r,i])/(self.delta_sigma[r,i]**2)
         _r2 = np.exp(-_r2)
         _rt = 2.0*_r2*_rt
 
@@ -1220,7 +1112,7 @@ class Material3D(Material):
         self.num_aux = 12
         self.num_dim = 3
         self.options = {}
-        super(Material2D,self).__init__(normalized,shape)
+        super(Material3D,self).__init__(normalized,shape)
         self.dim = 'x'
         self.metal = metal
         self._dx = 1.0

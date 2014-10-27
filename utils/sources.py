@@ -661,12 +661,12 @@ class Source3D(Sources):
 
     def __init__(self,material,shape='off',**kwargs):
         self._set_f_w(material,kwargs)
-        self.options = {}
+        self.options            = {}
         self.k                  = np.asarray([2.0*np.pi/self.wavelength,0.0,0.0])
         self.v                  = material.co*np.asarray([1.0/material.bkg_n[0],1.0/material.bkg_n[1],1.0/material.bkg_n[2]])
         self.amplitude          = np.asarray([0.0,material.zo,0.0,0.0,0.0,1.0])
         self.offset             = np.zeros([6])
-        self.transversal_shape  = shape
+        self.transversal_shape  = 'plane'
         self.transversal_offset = np.zeros([2])
         self.transversal_width  = np.zeros([2])
         self.transversal_function = None
@@ -674,3 +674,6 @@ class Source3D(Sources):
         self.custom             = False
         self.function           = None
         self._material          = material
+        self._delta             = np.zeros([3])
+        self.averaged           = False
+        self.cut                = True
