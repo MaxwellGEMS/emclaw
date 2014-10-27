@@ -976,21 +976,21 @@ class Material3D(Material):
         if len(self.dim)==1:
             p = dims[0]
             for i in range(0,6): 
-                _r2[i] = ((grid[p] - self.offset[p,i])/self.sigma[p,i])**2
+                _r2[i] = ((grid[p] - self.offset[p,i])/self.delta_sigma[p,i])**2
 
         if len(self.dim)==2:
             p,q = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i])/self.sigma[p,i])**2
-                _temp2 = ((grid[q] - self.offset[q,i])/self.sigma[q,i])**2
+                _temp1 = ((grid[p] - self.offset[p,i])/self.delta_sigma[p,i])**2
+                _temp2 = ((grid[q] - self.offset[q,i])/self.delta_sigma[q,i])**2
                 _r2[i] = _temp1 + _temp2
 
         if len(self.dim)==3:
             p,q,r = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i])/self.sigma[p,i])**2
-                _temp2 = ((grid[q] - self.offset[q,i])/self.sigma[q,i])**2
-                _temp3 = ((grid[r] - self.offset[r,i])/self.sigma[r,i])**2
+                _temp1 = ((grid[p] - self.offset[p,i])/self.delta_sigma[p,i])**2
+                _temp2 = ((grid[q] - self.offset[q,i])/self.delta_sigma[q,i])**2
+                _temp3 = ((grid[r] - self.offset[r,i])/self.delta_sigma[r,i])**2
                 _r2[i] = _temp1 + _temp2 + _temp3
 
         _r2 = np.exp(-_r2)
@@ -1010,27 +1010,27 @@ class Material3D(Material):
         if len(self.dim)==1:
             p = dims[0]
             for i in range(0,6):
-                _r2[i] = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.sigma[p,i])
-                _rt[i] = self.delta_velocity[p,i]/(2.0*self.sigma[p,i]**2)
+                _r2[i] = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.delta_sigma[p,i])
+                _rt[i] = self.delta_velocity[p,i]/(2.0*self.delta_sigma[p,i]**2)
 
         if len(self.dim)==2:
             p,q = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.sigma[p,i])
-                _temp2 = ((grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t)/self.sigma[q,i])
-                _rt[i] = self.delta_velocity[p,i]/(2.0*self.sigma[p,i]) + \
-                    self.delta_velocity[q,i]/(2.0*self.sigma[q,i])
+                _temp1 = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.delta_sigma[p,i])
+                _temp2 = ((grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t)/self.delta_sigma[q,i])
+                _rt[i] = self.delta_velocity[p,i]/(2.0*self.delta_sigma[p,i]) + \
+                    self.delta_velocity[q,i]/(2.0*self.delta_sigma[q,i])
                 _r2[i] = _temp1 + _temp2
 
         if len(self.dim)==2:
             p,q,r = dims
             for i in range(0,6):
-                _temp1 = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.sigma[p,i])
-                _temp2 = ((grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t)/self.sigma[q,i])
-                _temp3 = ((grid[r] - self.offset[r,i] - self.delta_velocity[r,i]*t)/self.sigma[r,i])
-                _rt[i] = self.delta_velocity[p,i]/(2.0*self.sigma[p,i]**2) + \
-                    self.delta_velocity[q,i]/(2.0*self.sigma[q,i]) + \
-                    self.delta_velocity[r,i]/(2.0*self.sigma[r,i])
+                _temp1 = ((grid[p] - self.offset[p,i] - self.delta_velocity[p,i]*t)/self.delta_sigma[p,i])
+                _temp2 = ((grid[q] - self.offset[q,i] - self.delta_velocity[q,i]*t)/self.delta_sigma[q,i])
+                _temp3 = ((grid[r] - self.offset[r,i] - self.delta_velocity[r,i]*t)/self.delta_sigma[r,i])
+                _rt[i] = self.delta_velocity[p,i]/(2.0*self.delta_sigma[p,i]**2) + \
+                    self.delta_velocity[q,i]/(2.0*self.delta_sigma[q,i]) + \
+                    self.delta_velocity[r,i]/(2.0*self.delta_sigma[r,i])
                 _r2[i] = _temp1 + _temp2 + _temp3
 
         _r2 = 1.0 + np.tanh(_r2)
