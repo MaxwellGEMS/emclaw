@@ -1,9 +1,6 @@
 import os
 from convergence import Errors2D
 
-matpath = '/media/noor/simdesk/results/analysis/results'
-matsrc  = 'analytic_centers_simpson__all_hd_exact_65536.mat'
-
 testdir = '/media/shaheen/dev/results/maxwell_2d/convergence_averaged'
 basedir = '_output_plane_'
 basemin = 7

@@ -1,16 +1,16 @@
 import os
 from convergence import Errors1D
 
-matpath = '/media/noor/simdesk/results/analysis/results'
-matsrc  = 'analytic_centers_simpson__all_hd_exact_65536.mat'
+matpath = '../matlab/results'
+matsrc  = '_sin_nc_65536.mat'
 
-testdir = '/simdesk/sandbox/emclaw/results/1D/_convergence_alt_src_averaged'
+testdir = '/simdesk/sandbox/emclaw/results/1D/_convergence_sin'
 basedir = '_output_'
 basemin = 7
 basemax = 15
-frame   = 61
+frame   = 5
 
-savedir = '/simdesk/sandbox/emclaw/results/1D/convergence_gauss_test/summary_simp'
+savedir = '/simdesk/sandbox/emclaw/results/1D/_convergence_sin/_summary'
 
 error = Errors1D(testdir,basedir,savedir,frame)
 
@@ -19,6 +19,6 @@ error.finesrc = os.path.join(testdir,basedir+'16')
 error.basemin = basemin
 error.basemax = basemax
 error.debug   = True
-error.p_line_range = [2,7]
+error.p_line_range = [1,7]
 
 error.convergence()
