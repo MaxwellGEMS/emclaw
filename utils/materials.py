@@ -271,23 +271,6 @@ class Material(object):
 
         return w,dw
 
-    def __init__(self,normalized=True,shape='homogeneous'):
-        self.normalized_vacuum = normalized
-        self.shape    = shape
-        self.custom   = False
-        self.averaged = False
-        self.nonlinear = True
-        self.bkg_eta  = np.ones([self.num_aux/2])
-        self.delta    = np.ones([self.num_aux/2])
-        self.bkg_n    = np.ones([self.num_dim])
-        self.n_max    = np.ones([self.num_dim])
-        self._outdir  = './_output'
-        self.name     = 'material'
-        self._moving  = False
-        self.v        = 1.0
-        self.update_at_each_stage = False
-        self.function  = None
-    
     def general_setup(self,options={}):
         self._unpack_options(options=options)
         self._set_vacuum()
@@ -301,7 +284,7 @@ class Material(object):
         
         if self.shape.startswith('moving'):
             self.offset         = np.zeros([self.num_dim,self.num_aux/2])
-            self.delta_velocity = np.ones([self.num_dim,self.num_aux/2])
+            self.delta_velocity = np.zeros([self.num_dim,self.num_aux/2])
             self._moving        = True
             self.update_at_each_stage = True
 
@@ -312,7 +295,7 @@ class Material(object):
                 self.function = self._tanh_rip
 
             self.offset[0,:].fill(10.0)
-            self.delta.velocity[0,:].fill(0.59)
+            self.delta_velocity[0,:].fill(0.59)
         
         if 'gauss' in self.shape:
             temp_flag = True
@@ -326,6 +309,7 @@ class Material(object):
             self.relative_amplitude = 0.1*np.ones([self.num_aux/2])
             self.delta_eta          = self.relative_amplitude*self.bkg_eta
             self.em_equal           = True
+            self.delta_sign         = 1.0
 
             if not self._moving:
                 self.function   = self._gaussian
@@ -393,7 +377,25 @@ class Material(object):
 
         return
 
+    def __init__(self,normalized=True,shape='homogeneous'):
+        self.normalized_vacuum = normalized
+        self.shape     = shape
+        self.custom    = False
+        self.averaged  = False
+        self.nonlinear = True
+        self.bkg_eta   = np.ones([self.num_aux/2])
+        self.delta     = np.ones([self.num_aux/2])
+        self.bkg_n     = np.ones([self.num_dim])
+        self.n_max     = np.ones([self.num_dim])
+        self._outdir   = './_output'
+        self.name      = 'material'
+        self._moving   = False
+        self.v         = 1.0
+        self.update_at_each_stage = False
+        self.function  = None
+
 class Material1D(Material):
+
     def setup(self,options={}):
         self._unpack_options(options=options)
         self._set_vacuum()
@@ -604,21 +606,6 @@ class Material2D(Material):
     def setup(self,options={}):
         self.general_setup()
 
-    def set_fiber_single(self):
-        self.shape = 'fiber single'
-        self.setup()
-        return
-
-    def set_fiber_double(self):
-        self.shape = 'fiber double'
-        self.setup()
-        return
-
-    def set_fiber_single_sine(self):
-        self.shape = 'fiber single sine'
-        self.setup()
-        return
-
     def _calculate_n(self):
         
         eta = self.bkg_eta
@@ -688,16 +675,16 @@ class Material2D(Material):
 
     def _gaussian_rip_averaged(self,x,y,t=0):
         eta = np.zeros( [6,x.shape[0],y.shape[1]], order='F')
-        _r2 = np.ones( [3,x.shape[0],y.shape[1]], order='F')
-        _rp = np.ones( [3,x.shape[0],y.shape[1]], order='F')
+        _r2 = np.ones(  [3,x.shape[0],y.shape[1]], order='F')
+        _rp = np.ones(  [3,x.shape[0],y.shape[1]], order='F')
         _rt = np.zeros( [3,x.shape[0],y.shape[1]], order='F')
 
         u = v = False
 
         if self.dim=='x': u = True
-        
+
         if self.dim=='y': v =  True
-        
+
         if self.dim=='xy': u = v = True
 
         if u:
