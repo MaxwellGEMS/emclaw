@@ -48,13 +48,13 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
     double precision, intent(in)  :: auxr(num_aux,1-num_ghost:maxnx+num_ghost)
     double precision, intent(in)  ::   ql(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(in)  ::   qr(num_eqn,1-num_ghost:maxnx+num_ghost)
-    
+
     double precision, intent(out) :: fwave(num_eqn,num_waves,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) ::    s(num_waves,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: apdq(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: amdq(num_eqn,1-num_ghost:maxnx+num_ghost)
 
-    integer          :: i, m
+    integer          :: i, m, nl
     double precision :: q1i, q1im, q2i, q2im
     double precision :: dq1, dq2, b1, b2
     double precision :: epsi, epsim, mui, muim
@@ -63,7 +63,7 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
     double precision :: c,z
     double precision :: chi2_e, chi2_m, chi3_e, chi3_m
 
-    common /cparam/  dx, chi2_e, chi2_m, chi3_e, chi3_m, eo, mo, co, zo
+    common /cparam/  dx, chi2_e, chi2_m, chi3_e, chi3_m, eo, mo, co, zo, nl
 
 !   split the jump in q at each interface into waves
     z = zo
@@ -88,9 +88,14 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
         b1 = (dq1*z - dq2)/(2.d0*z)
         b2 = (dq1*z + dq2)/(2.d0*z)
 
-        kappa1 = 0.5d0*(epsi + epsim + 2.d0*chi2_e*(q1i + q1im) + 3.d0*chi3_e*((q1i + q1im)**2))
-        kappa2 = 0.5d0*(mui  + muim  + 2.d0*chi2_m*(q2i + q2im) + 3.d0*chi3_m*((q2i + q2im)**2))
-  
+        kappa1 = 0.5d0*(epsi + epsim)
+        kappa2 = 0.5d0*(mui  + muim )
+
+        if (nl.eq.1) then  
+            kappa1 = kappa1 + 0.5d0*chi2_e*(q1i + q1im) + (3.d0/8.d0)*chi3_e*((q1i + q1im)**2)
+            kappa2 = kappa2 + 0.5d0*chi2_m*(q2i + q2im) + (3.d0/8.d0)*chi3_m*((q2i + q2im)**2)
+        end if
+
         fwave(1,1,i) = b1 *(-z) / kappa1
         fwave(2,1,i) = b1 / kappa2
         s(1,i) = -c

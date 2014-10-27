@@ -5,19 +5,18 @@ import numpy as np
 sys.path.append(os.path.realpath('../utils'))
 sys.path.append(os.path.realpath('../'))
 
-
 from utils.materials import Material1D
 from utils.sources import Source1D
 
 material = Material1D(shape='homogeneous')
 material.setup()
 
-source = Source1D(material,shape='pulse',wavelength=2.0)
-source.offset = -5.0
+source = Source1D(material,shape='off',wavelength=2.0)
+source.offset = 25.0
 source.setup()
 
 x_lower = 0.
-x_upper = 300.
+x_upper = 100.
 
 def grid_basic(x_lower,x_upper,mx,cfl):
     dx = (x_upper-x_lower)/mx
@@ -26,13 +25,25 @@ def grid_basic(x_lower,x_upper,mx,cfl):
 
     return dx,dt,tf
 
-def em1D(mx=2**11,num_frames=100,cfl=1.0,outdir='./_output',before_step=True,debug=False):
+def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True):
+
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
+    if nl:
+        material.chi3_e = chi3
+        if em:
+            material.chi3_m = chi3
+
+        material.chi2_e = chi2
+        if em:
+            material.chi2_m = chi2
+
     if MPI.COMM_WORLD.rank==0:
-        material.dump()
-        source.dump()
+        material._outdir = outdir
+        source._outdir   = outdir
+        material._dump_to_latex()
+        source._dump_to_latex()
 
     num_eqn   = 2
     num_waves = 2
@@ -56,26 +67,27 @@ def em1D(mx=2**11,num_frames=100,cfl=1.0,outdir='./_output',before_step=True,deb
     
 #   Import Riemann and Tfluct solvers
     import maxwell_1d_rp
-    import maxwell_1d_tfluct
 
     solver.tfluct_solver = True
-    solver.fwave = True
+    solver.fwave         = True
     
     solver.rp = maxwell_1d_rp
-    solver.tfluct = maxwell_1d_tfluct
+
+    if solver.tfluct_solver:
+        import maxwell_1d_tfluct
+        solver.tfluct = maxwell_1d_tfluct
     
-    solver.cfl_max = cfl+0.5
+    solver.cfl_max     = cfl+0.5
     solver.cfl_desired = cfl
 
 #   boundary conditions
-    solver.bc_lower[0] = pyclaw.BC.custom
-    solver.bc_upper[0] = pyclaw.BC.extrap
-    solver.user_bc_lower = source.scattering_bc
+    solver.bc_lower[0] = pyclaw.BC.wall
+    solver.bc_upper[0] = pyclaw.BC.wall
 
-    solver.aux_bc_lower[0]= pyclaw.BC.custom
-    solver.aux_bc_upper[0]= pyclaw.BC.custom
-    solver.user_aux_bc_lower = material.setaux_lower
-    solver.user_aux_bc_upper = material.setaux_upper
+    solver.aux_bc_lower[0] = pyclaw.BC.wall
+    solver.aux_bc_upper[0] = pyclaw.BC.wall
+
+    solver.reflect_index = [0]
 
 #   before step configure
     if before_step:
@@ -89,11 +101,16 @@ def em1D(mx=2**11,num_frames=100,cfl=1.0,outdir='./_output',before_step=True,deb
     state.problem_data['chi3_e'] = material.chi3_e
     state.problem_data['chi2_m'] = material.chi2_m
     state.problem_data['chi3_m'] = material.chi3_m
-    state.problem_data['eo'] = material.eo
-    state.problem_data['mo'] = material.mo
-    state.problem_data['co'] = material.co
-    state.problem_data['zo'] = material.zo
-    state.problem_data['dx'] = state.grid.x.delta
+    state.problem_data['eo']     = material.eo
+    state.problem_data['mo']     = material.mo
+    state.problem_data['co']     = material.co
+    state.problem_data['zo']     = material.zo
+    state.problem_data['dx']     = state.grid.x.delta
+    state.problem_data['nl']     = nl
+    state.problem_data['psi']    = psi
+
+    source._dx   = state.grid.x.delta
+    material._dx = state.grid.x.delta
 
 #   array initialization
     source.init(state)
