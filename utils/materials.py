@@ -100,27 +100,6 @@ class Material(object):
             except:
                 pass
 
-    def set_moving_gauss(self):
-        self.shape = 'moving gauss'
-        self.setup()
-        return
-
-    def set_moving_tanh(self):
-        self.shape = 'moving tanh'
-        self.setup()
-        return
-
-    def set_gaussian(self):
-        self.shape = 'gaussian'
-        self.setup()
-        return
-
-    def set_custom(self):
-        self.custom = True
-        self.shape = 'custom'
-        self.setup()
-        return
-
     def plot(self,eta):
         import matplotlib
         # set matplotlib to work over X-forwarding
