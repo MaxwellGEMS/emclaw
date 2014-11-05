@@ -210,15 +210,35 @@ class Convergence(object):
         setattr(self, 'plotdir', os.path.join(self.savedir,'_plots'))
         setattr(self, 'reportdir', os.path.join(self.savedir,'_report'))
 
-    def getClaw(self,dirs):
-        solution = Solution()
-        solution.read(self.frame,path=dirs,file_format='petsc',read_aux=False)
+    def getClaw(self,dirs,frame=None,qn=None):
+        if frame is None:
+            frame = self.frame
+        if qn is None:
+            qn = self.qn
 
-        qclaw  = solution.state.get_q_global()[self.qn]
+        solution = Solution()
+        solution.read(frame,path=dirs,file_format=self.file_format,read_aux=False)
+
+        qclaw  = solution.state.get_q_global()[qn]
         xclaw  = solution.state.grid.x.centers
         delta  = solution.state.grid.delta
 
         return qclaw,xclaw,delta
+
+    def getAux(self,dirs,frame=None,qn=None):
+        if frame is None:
+            frame = self.frame
+        if qn is None:
+            qn = self.qn
+
+        solution = Solution()
+        solution.read(frame,path=dirs,file_format=self.file_format,read_aux=True)
+
+        auxclaw  = solution.state.get_aux_global()[qn]
+        xclaw    = solution.state.grid.x.centers
+        delta    = solution.state.grid.delta
+
+        return auxclaw,xclaw,delta
 
     def load_matlab(self):
 
@@ -231,6 +251,24 @@ class Convergence(object):
         x_exact = matdict['xs'][:,-1]
 
         return q_exact,x_exact
+
+    def compare(self,dir1,dir2,frame=None,plot=False,affix='',aux=False):
+        if frame is None:
+            frame = self.frame
+
+        if aux:
+            q1,x1,d1 = self.getAux(dir1,frame)
+            q2,x2,d2 = self.getAux(dir2,frame)
+        else:
+            q1,x1,d1 = self.getClaw(dir1,frame)
+            q2,x2,d2 = self.getClaw(dir2,frame)
+
+        compare = self.self_convergence(q1,q2,d1)
+
+        if plot:
+            self.plot_solutions(x1,q1,x2,q2,figname=affix+'frame_'+str(frame),label1='s1',label2='s2')
+
+        return compare
 
     def makedirs(self):
         self.create_dir(self.savedir)
@@ -256,6 +294,7 @@ class Convergence(object):
         self.pth       = 1.5
         self.plot_format = 'eps'
         self.p_line_range = [2,7]
+        self.file_format = 'petsc'
 
 class Errors1D(Convergence):
     def __init__(self,testdir='./',basedir='_output_',savedir=None,frame=0):
