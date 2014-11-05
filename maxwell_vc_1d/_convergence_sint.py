@@ -14,12 +14,12 @@ x_upper = 100.
 
 material = Material1D()
 material.shape = 'vibrate'
+material.bkg_e = 2.0
+material.bkg_h = 2.0
 material.setup()
 material.delta_length = x_upper
 material.delta_corner = x_lower
-material.bkg_e = 2.0
-material.bkg_h = 2.0
-material.delta_omega  = 4.0*np.pi/200.0
+material.delta_omega  = 12.0*np.pi/200.0
 
 source = Source1D(material,shape='off',wavelength=2.0)
 source.setup()
@@ -29,7 +29,7 @@ source.pulse_width = 2.0
 def grid_basic(x_lower,x_upper,mx,cfl):
     dx = (x_upper-x_lower)/mx
     dt = 0.9*cfl/(material.co*np.sqrt(1.0/(dx**2)))
-    tf = 200.0
+    tf = 100.0
 
     return dx,dt,tf
 
@@ -39,11 +39,11 @@ def dq_source(solver,state,dt):
     Assume aux values are averages on the cell i
     """
 
-    dq = -state.grid.x.delta*state.q*state.aux[2:4,:]/state.aux[0:2,:]
+    dq = -dt*state.q*state.aux[2:4,:]/state.aux[0:2,:]
 
     return dq
 
-def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=True,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True):
+def em1D(mx=1024,num_frames=5,cfl=1.0,outdir='./_output',before_step=True,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True):
 
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
@@ -85,6 +85,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=True,debug
 
 #   Set the source
     if not psi:
+        print 'using dq_src'
         solver.dq_src = dq_source
 
 #   Import Riemann and Tfluct solvers
@@ -99,7 +100,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=True,debug
         import maxwell_1d_tfluct
         solver.tfluct = maxwell_1d_tfluct
     
-    solver.cfl_max     = cfl+0.5
+    solver.cfl_max     = cfl+0.05
     solver.cfl_desired = cfl
 
 #   boundary conditions
@@ -113,8 +114,8 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=True,debug
 
 #   before step configure
     if before_step:
-            solver.call_before_step_each_stage = True
-            solver.before_step = material.update_aux
+        solver.call_before_step_each_stage = True
+        solver.before_step = material.update_aux
 
 #   state setup
     state = pyclaw.State(domain,num_eqn,num_aux)
