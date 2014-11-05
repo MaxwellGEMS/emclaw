@@ -60,12 +60,14 @@ class Sources:
         arg = xo + v*t - x
         
         if self.averaged:
+            print 'averaging'
             ddx = dx/2.0
             erravg = (np.sqrt(np.pi)*s*(erf((ddx + arg)/s) + erf((ddx - arg)/s)))/(2.0*dx)
         else:
             erravg = np.exp(-arg**2/s**2)
 
         if self.cut:
+            print 'cutting'
             span = ((arg**2/s**2)<=(4.0*s))
             erravg = erravg*span
 
@@ -293,7 +295,7 @@ class Source1D(Sources):
         self._material    = material
         self.dx           = 1.0
         self.heading      = 'x'
-        self.cut          = True
+        self.cut          = False
         self.num_dim      = 1
 
 class Source2D(Sources):
@@ -480,7 +482,7 @@ class Source2D(Sources):
         self.function   = None
         self.heading    = 'x'
         self.averaged   = True
-        self.cut        = True
+        self.cut        = False
         self._delta     = np.ones([2])
         self._material  = material
         self.transversal_shape    = 'plane'
@@ -676,4 +678,4 @@ class Source3D(Sources):
         self._material          = material
         self._delta             = np.zeros([3])
         self.averaged           = False
-        self.cut                = True
+        self.cut                = False
