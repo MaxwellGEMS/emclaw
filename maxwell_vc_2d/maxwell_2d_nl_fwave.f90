@@ -53,7 +53,7 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
     double precision, intent(out) :: apdq(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: amdq(num_eqn,1-num_ghost:maxnx+num_ghost)
 
-    integer          :: i, m
+    integer          :: i, m, nl
     double precision :: q1i, q1im, q2i, q2im, q3i, q3im
     double precision :: dq1, dq2, dq3, b1, b2, b3
     double precision :: df1, df2, df3
@@ -64,7 +64,7 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
     double precision :: c, z
     double precision :: chi2(3), chi3(3)
 
-    common /cparam/  dx, dy, chi2, chi3, co, zo, vac1, vac2, vac3
+    common /cparam/  dx, dy, chi2, chi3, co, zo, vac1, vac2, vac3, nl
 
     c = zo
     z = zo
@@ -96,9 +96,16 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
         dq2 = (q2i - q2im)
         dq3 = (q3i - q3im)
 
-        kappa1 = 0.5d0*(eta1i + eta1im + 2.d0*chi2(1)*(q1i + q1im) + 3.d0*chi3(1)*((q1i + q1im)**2))
-        kappa2 = 0.5d0*(eta2i + eta2im + 2.d0*chi2(2)*(q2i + q2im) + 3.d0*chi3(2)*((q2i + q2im)**2))
-        kappa3 = 0.5d0*(eta3i + eta3im + 2.d0*chi2(3)*(q3i + q3im) + 3.d0*chi3(3)*((q3i + q3im)**2))
+        
+        kappa1 = 0.5d0*(eta1i + eta1im)
+        kappa2 = 0.5d0*(eta2i + eta2im)
+        kappa3 = 0.5d0*(eta3i + eta3im)
+
+        if (nl.eq.1) then
+            kappa1 = kappa1 + 0.5d0*chi2(1)*(q1i + q1im) + (3.d0/8.d0)*chi3(1)*((q1i + q1im)**2)
+            kappa2 = kappa2 + 0.5d0*chi2(2)*(q2i + q2im) + (3.d0/8.d0)*chi3(2)*((q2i + q2im)**2)
+            kappa3 = kappa3 + 0.5d0*chi2(3)*(q3i + q3im) + (3.d0/8.d0)*chi3(3)*((q3i + q3im)**2)
+        end if
 
         if (ixy==1) then
             df2 = dq3/vac2

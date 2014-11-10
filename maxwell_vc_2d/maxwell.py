@@ -29,9 +29,12 @@ def grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl):
 
     return dx,dy,dt,tf
 
-def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,heading='x',shape='off'):
+def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,heading='x',shape='pulse',nl=False,psi=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
+
+#   grid pre calculations and domain setup
+    dx,dy,dt,tf = grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl)
 
     source = Source2D(material,shape=shape,wavelength=2.0)
 
@@ -40,14 +43,16 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
         if heading=='xy':
             source.offset[0] = sy/2.0
             source.offset[1] = sx/2.0
+            tf = 22.0
     else:
-        source.offset.fill(-5.0)
+        source.offset[0] = -5.0
+        source.offset[1] = sy/2.0
         source.transversal_offset = sy/2.0
         source.transversal_width = sy
-        source.transversal_shape = 'cosine'
-
-    source.heading = heading
+        source.transversal_shape = 'plane'
     source.setup()
+    source.heading = heading
+    source.averaged = True
 
     if (debug and MPI.COMM_WORLD.rank==0):
         material.dump()
@@ -57,8 +62,7 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     num_waves = 2
     num_aux   = 6
 
-#   grid pre calculations and domain setup
-    dx,dy,dt,tf = grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl)
+
 
     x = pyclaw.Dimension('x',x_lower,x_upper,mx)
     y = pyclaw.Dimension('y',y_lower,y_upper,my)
@@ -125,6 +129,11 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     state.problem_data['zo'] = material.zo
     state.problem_data['dx'] = state.grid.x.delta
     state.problem_data['dy'] = state.grid.y.delta
+    state.problem_data['nl']     = nl
+    state.problem_data['psi']    = psi
+
+    source._dx = state.grid.x.delta
+    source._dy = state.grid.y.delta
 
 #   array initialization
     source.init(state)

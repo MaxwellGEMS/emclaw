@@ -23,21 +23,21 @@ def setplot(plotdata):
     plotdata.clearfigures()  # clear any old figures,axes,items data
 
     # Figure for total field intensity and refractive index
-    plotfigure = plotdata.new_plotfigure(name='E^2 + H^2, n', figno=0)
+    plotfigure = plotdata.new_plotfigure(name='I and n', figno=0)
     
     # plot fields intensity
     plotaxes = plotfigure.new_plotaxes()
     plotaxes.axescmd = 'subplot(211)'
     plotaxes.xlimits = 'auto'
     plotaxes.ylimits = 'auto'
-    plotaxes.title = ''
+    plotaxes.title = 'I'
 
     plotitem = plotaxes.new_plotitem(plot_type='1d_plot')
     plotitem.plot_var = ehfields 
     plotitem.plotstyle = '-'
     plotitem.color = 'b'
     plotitem.show = True       # show on plot?
-    plotitem.kwargs = {'linewidth':1,'markersize':1}
+    plotitem.kwargs = {'linewidth':2,'markersize':1}
 
     # plot refractive index
 
@@ -45,14 +45,14 @@ def setplot(plotdata):
     plotaxes.axescmd = 'subplot(212)'
     plotaxes.xlimits = 'auto'
     plotaxes.ylimits = 'auto'
-    plotaxes.title = ''
+    plotaxes.title = '$n(x,t)$'
 
     plotitem = plotaxes.new_plotitem(plot_type='1d_plot')
     plotitem.plot_var = refind
     plotitem.plotstyle = '-'
     plotitem.color = 'g'
     plotitem.show = True       # show on plot?
-    plotitem.kwargs = {'linewidth':1,'markersize':1}
+    plotitem.kwargs = {'linewidth':2,'markersize':1}
 
     
     # Figure for q[0], q[1] and n (refractive index)
@@ -62,7 +62,7 @@ def setplot(plotdata):
     plotaxes.axescmd = 'subplot(211)'
     plotaxes.xlimits = 'auto'
     plotaxes.ylimits = 'auto'
-    plotaxes.title = 'E and n'
+    plotaxes.title = '$E$ and $n$'
 
     # Set up for item on these axes:
     plotitem = plotaxes.new_plotitem(plot_type='1d_plot')
@@ -91,7 +91,7 @@ def setplot(plotdata):
     plotaxes.axescmd = 'subplot(211)'
     plotaxes.xlimits = 'auto'
     plotaxes.ylimits = 'auto'
-    plotaxes.title = 'H and n'
+    plotaxes.title = '$H$ and $n$'
 
     plotitem = plotaxes.new_plotitem(plot_type='1d_plot')
     plotitem.plot_var = hfield
@@ -113,6 +113,37 @@ def setplot(plotdata):
     plotitem.show = True       # show on plot?
     plotitem.kwargs = {'linewidth':1,'markersize':1}
 
+    plotfigure = plotdata.new_plotfigure(name='u and n', figno=3)
+    
+    # plot fields intensity
+    plotaxes = plotfigure.new_plotaxes()
+    plotaxes.axescmd = 'subplot(211)'
+    plotaxes.xlimits = 'auto'
+    plotaxes.ylimits = 'auto'
+    plotaxes.title = 'u'
+
+    plotitem = plotaxes.new_plotitem(plot_type='1d_plot')
+    plotitem.plot_var = energy 
+    plotitem.plotstyle = '-'
+    plotitem.color = 'b'
+    plotitem.show = True       # show on plot?
+    plotitem.kwargs = {'linewidth':2,'markersize':1}
+
+    # plot refractive index
+
+    plotaxes = plotfigure.new_plotaxes()
+    plotaxes.axescmd = 'subplot(212)'
+    plotaxes.xlimits = 'auto'
+    plotaxes.ylimits = 'auto'
+    plotaxes.title = '$n(x,t)$'
+
+    plotitem = plotaxes.new_plotitem(plot_type='1d_plot')
+    plotitem.plot_var = refind
+    plotitem.plotstyle = '-'
+    plotitem.color = 'g'
+    plotitem.show = True       # show on plot?
+    plotitem.kwargs = {'linewidth':2,'markersize':1}
+
     # Parameters used only when creating html and/or latex hardcopy
     # e.g., via visclaw.frametools.printframes:
 
@@ -128,6 +159,10 @@ def setplot(plotdata):
     plotdata.latex_makepdf = False           # also run pdflatex?
 
     return plotdata
+
+def energy(current_data):
+    u = 0.5*((current_data.q[0,:]**2)*current_data.aux[0,:] + (current_data.q[1,:]**2)*current_data.aux[1,:])
+    return u
 
 def refind(current_data):
     "Return refractive index"

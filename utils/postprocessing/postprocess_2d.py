@@ -1,13 +1,26 @@
+fontsize = 18
 import os
 from glob import glob
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': fontsize})
+matplotlib.rcParams.update({'font.weight': 'normal'})
+matplotlib.rcParams['axes.formatter.limits'] = [0,3]
+matplotlib.rcParams['mathtext.default'] = 'sf'
+matplotlib.rcParams['axes.formatter.use_mathtext'] = True
+matplotlib.rcParams['xtick.labelsize'] = fontsize
+matplotlib.rcParams['ytick.labelsize'] = fontsize
+matplotlib.rcParams['axes.labelsize'] = fontsize
+matplotlib.rcParams['lines.linewidth'] = 1.5
+matplotlib.rcParams['lines.markersize'] = 5.0
+matplotlib.rcParams['lines.color'] = 'r'
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import colorConverter
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
+from matplotlib.lines import Line2D
 from matplotlib import pylab as plt
 from clawpack.pyclaw import Solution
 from scipy.io import loadmat,savemat
@@ -303,7 +316,7 @@ def assemble_q(path='./_output',frame_plot_range=[0],poynting=True,read_aux=Fals
     return Q,d,sol
 
 def postprocess(outdir='./_output',multiple=False,overwrite=False,sampling=5,save_mat=True,
-    frame_split=False,split_q=False,update_aux=False,poynting=True,cut=True):
+    frame_split=False,split_q=False,update_aux=True,poynting=True,cut=True):
     if multiple:
         outdir = outdir+'*'
 

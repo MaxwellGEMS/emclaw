@@ -13,10 +13,10 @@ x_lower = 0.0
 x_upper = 10.0
 
 y_lower = 0.0
-y_upper = 20.0
+y_upper = 5.0
 
 z_lower = 0.0
-z_upper = 10.0
+z_upper = 5.0
 
 sy = y_upper-y_lower
 sx = x_upper-x_lower
@@ -29,24 +29,24 @@ material = Material3D(shape='homogeneous',metal=False)
 material.setup()
 material._calculate_n()
 
-source = Source3D(material,shape='pulse',wavelength=2.0)
-source.offset[1] = -5.0
-source.offset[5] = -5.0
+source = Source3D(material,shape='off',wavelength=2.0)
+source.offset[0] = 5.0
 source.transversal_shape = 'plane'
+source.heading = 'x'
 source.setup()
 source.transversal_offset = [sy/2.0,sz/2.0]
-source.transversal_width = [sy/2.0,sz/2.0]
+source.transversal_width  = [sy/2.0,sz/2.0]
 
 def grid_basic(x_lower,x_upper,y_lower,y_upper,z_lower,z_upper,mx,my,mz,cfl):
     dx = (x_upper-x_lower)/mx
     dy = (y_upper-y_lower)/my
     dz = (z_upper-z_lower)/mz
     dt = 0.90/(material.co*np.sqrt(1.0/(dx**2)+1.0/(dy**2)+1.0/(dz**2)))
-    tf = (x_upper-x_lower+5.0)/1.0
+    tf = (x_upper-x_lower)/1.0
     
     return dx,dy,dz,dt,tf
 
-def em2D(mx=128,my=128,mz=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False):
+def em2D(mx=64,my=64,mz=64,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,nl=False,psi=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
@@ -60,7 +60,7 @@ def em2D(mx=128,my=128,mz=128,num_frames=10,cfl=1.0,outdir='./_output',before_st
 
 #   grid pre calculations and domain setup
     dx,dy,dz,dt,tf = grid_basic(x_lower,x_upper,y_lower,y_upper,z_lower,z_upper,mx,my,mz,cfl)
-    print tf
+
     x = pyclaw.Dimension('x',x_lower,x_upper,mx)
     y = pyclaw.Dimension('y',y_lower,y_upper,my)
     z = pyclaw.Dimension('z',z_lower,z_upper,mz)
@@ -90,25 +90,22 @@ def em2D(mx=128,my=128,mz=128,num_frames=10,cfl=1.0,outdir='./_output',before_st
     
     solver.cfl_max = cfl+0.5
     solver.cfl_desired = cfl
+    solver.reflect_index = [1,0,5]
 
 #   boundary conditions
-    solver.bc_lower[0] = pyclaw.BC.custom
-    solver.bc_lower[1] = pyclaw.BC.extrap
-    solver.bc_lower[2] = pyclaw.BC.extrap
-    solver.bc_upper[0] = pyclaw.BC.extrap
-    solver.bc_upper[1] = pyclaw.BC.extrap
-    solver.bc_upper[2] = pyclaw.BC.extrap
-    solver.user_bc_lower = source.scattering_bc
+    solver.bc_lower[0] = pyclaw.BC.wall
+    solver.bc_lower[1] = pyclaw.BC.wall
+    solver.bc_lower[2] = pyclaw.BC.wall
+    solver.bc_upper[0] = pyclaw.BC.wall
+    solver.bc_upper[1] = pyclaw.BC.wall
+    solver.bc_upper[2] = pyclaw.BC.wall
 
-    solver.aux_bc_lower[0]= pyclaw.BC.custom
-    solver.aux_bc_lower[1]= pyclaw.BC.extrap
-    solver.aux_bc_lower[2]= pyclaw.BC.extrap
-    solver.aux_bc_upper[0]= pyclaw.BC.extrap
-    solver.aux_bc_upper[1]= pyclaw.BC.extrap
-    solver.aux_bc_upper[2]= pyclaw.BC.extrap
-    
-    solver.user_aux_bc_lower = material.setaux_lower
-    solver.user_aux_bc_upper = material.setaux_upper
+    solver.aux_bc_lower[0]= pyclaw.BC.wall
+    solver.aux_bc_lower[1]= pyclaw.BC.wall
+    solver.aux_bc_lower[2]= pyclaw.BC.wall
+    solver.aux_bc_upper[0]= pyclaw.BC.wall
+    solver.aux_bc_upper[1]= pyclaw.BC.wall
+    solver.aux_bc_upper[2]= pyclaw.BC.wall
 
 #   before step configure
     if before_step:
@@ -127,6 +124,12 @@ def em2D(mx=128,my=128,mz=128,num_frames=10,cfl=1.0,outdir='./_output',before_st
     state.problem_data['dx'] = state.grid.x.delta
     state.problem_data['dy'] = state.grid.y.delta
     state.problem_data['dz'] = state.grid.z.delta
+    state.problem_data['nl']     = nl
+    state.problem_data['psi']    = psi
+
+    source._delta[0] = state.grid.x.delta
+    source._delta[1] = state.grid.y.delta
+    source._delta[2] = state.grid.z.delta
 
 #   array initialization
     source.init(state)

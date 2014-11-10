@@ -1,7 +1,7 @@
 ! ============================================================================
 subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,amdq2)
 ! ============================================================================
-!   
+!
 !   "Internal" Riemann solver for Maxwell's equations in 1d.
 !
 !   On input, q     contains the cell average state vector
@@ -31,7 +31,7 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
 
     double precision, intent(out) :: amdq2(num_eqn,1-num_ghost:maxnx+num_ghost)
 
-    integer          :: i
+    integer          :: i, nl, psi
     double precision :: q1i, q1im, q2i, q2im
     double precision :: df1, df2, psi1, psi2
     double precision :: epsi, epsim, mui, muim
@@ -39,7 +39,10 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
     double precision :: kappa1, kappa2, eo, mo, zo, co, dx
     double precision :: chi2_e, chi2_m, chi3_e, chi3_m
 
-    common /cparam/  dx, chi2_e, chi2_m, chi3_e, chi3_m, eo, mo, co, zo
+    common /cparam/  dx, chi2_e, chi2_m, chi3_e, chi3_m, eo, mo, co, zo, nl, psi
+
+    psi1 = 0.d0
+    psi2 = 0.d0
 
     do i = 1-num_ghost, mx+num_ghost
         q1i   = qr(1,i)
@@ -51,23 +54,34 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
         epsim = auxl(1,i)
         mui   = auxr(2,i)
         muim  = auxl(2,i)
-        
-        epsti  = auxr(3,i)
-        epstim = auxl(3,i)
-        muti   = auxr(4,i)
-        mutim  = auxl(4,i)
 
-        psi1 = -0.5d0*(epsti*q1i + epstim*q1im)
-        psi2 = -0.5d0*(muti*q2i  + mutim*q2im )
+        kappa1 = 0.5d0*(epsi + epsim)
+        kappa2 = 0.5d0*(mui  + muim )
 
-        kappa1 = 0.5d0*(epsi + epsim + 2.d0*chi2_e*(q1i + q1im) + 3.d0*chi3_e*((q1i + q1im)**2))
-        kappa2 = 0.5d0*(mui  + muim  + 2.d0*chi2_m*(q2i + q2im) + 3.d0*chi3_m*((q2i + q2im)**2))
-        
+        if (nl.eq.1) then  
+            kappa1 = kappa1 + 0.5d0*chi2_e*(q1i + q1im) + (3.d0/8.d0)*chi3_e*((q1i + q1im)**2)
+            kappa2 = kappa2 + 0.5d0*chi2_m*(q2i + q2im) + (3.d0/8.d0)*chi3_m*((q2i + q2im)**2)
+        end if
+
         df1 = (q2i - q2im)/eo
         df2 = (q1i - q1im)/mo
 
-        amdq2(1,i) = (df1 - dx*psi1)/kappa1
-        amdq2(2,i) = (df2 - dx*psi2)/kappa2
+        if (psi.eq.1) then
+            epsti  = auxr(3,i)
+            epstim = auxl(3,i)
+            muti   = auxr(4,i)
+            mutim  = auxl(4,i)
+
+            psi1 = -0.5d0*(epsti*q1i + epstim*q1im)
+            psi2 = -0.5d0*(muti*q2i  + mutim*q2im )
+
+            amdq2(1,i) = (df1 - dx*psi1)/kappa1
+            amdq2(2,i) = (df2 - dx*psi2)/kappa2
+        else
+            amdq2(1,i) = df1/kappa1
+            amdq2(2,i) = df2/kappa2
+        end if
+
     enddo
 
     return

@@ -48,25 +48,26 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
     double precision, intent(in)  :: auxr(num_aux,1-num_ghost:maxnx+num_ghost)
     double precision, intent(in)  ::   ql(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(in)  ::   qr(num_eqn,1-num_ghost:maxnx+num_ghost)
-    
-    double precision, intent(out) :: fwave(num_waves,num_eqn,1-num_ghost:maxnx+num_ghost)
+
+    double precision, intent(out) :: fwave(num_eqn,num_waves,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) ::    s(num_waves,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: apdq(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: amdq(num_eqn,1-num_ghost:maxnx+num_ghost)
 
-    integer          :: i, m
+    integer          :: i, m, nl
     double precision :: q1i, q1im, q2i, q2im
-    double precision :: df1, df2, b1, b2
+    double precision :: dq1, dq2, b1, b2
     double precision :: epsi, epsim, mui, muim
     double precision :: epsti, epstim, muti, mutim
     double precision :: kappa1, kappa2, eo, mo, zo, co, dx
-    double precision :: ci, cim, zi, zim
+    double precision :: c,z
     double precision :: chi2_e, chi2_m, chi3_e, chi3_m
 
-    common /cparam/  dx, chi2_e, chi2_m, chi3_e, chi3_m, eo, mo, co, zo
+    common /cparam/  dx, chi2_e, chi2_m, chi3_e, chi3_m, eo, mo, co, zo, nl
 
 !   split the jump in q at each interface into waves
-
+    z = zo
+    c = co
     do i = 2-num_ghost, mx+num_ghost
         epsi   = auxl(1,i  )
         epsim  = auxr(1,i-1)
@@ -81,27 +82,27 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
         q2i    = ql(2,i  )
         q2im   = qr(2,i-1)
 
-        ci  = co 
-        cim = co
-        zi  = zo
-        zim = zo
+        dq2 = (q2i - q2im)/eo
+        dq1 = (q1i - q1im)/mo
 
-        df1 = (q2i - q2im)/eo
-        df2 = (q1i - q1im)/mo
+        b1 = (dq1*z - dq2)/(2.d0*z)
+        b2 = (dq1*z + dq2)/(2.d0*z)
 
-        b1 = (zi * df2 - df1) / (zim + zi)
-        b2 = (zim * df2 + df1) / (zim + zi)
+        kappa1 = 0.5d0*(epsi + epsim)
+        kappa2 = 0.5d0*(mui  + muim )
 
-        kappa1 = 0.5d0*(epsi + epsim + 2.d0*chi2_e*(q1i + q1im) + 3.d0*chi3_e*((q1i + q1im)**2))
-        kappa2 = 0.5d0*(mui  + muim  + 2.d0*chi2_m*(q2i + q2im) + 3.d0*chi3_m*((q2i + q2im)**2))
-  
-        fwave(1,1,i) = b1 *(-zim) / kappa1
+        if (nl.eq.1) then  
+            kappa1 = kappa1 + 0.5d0*chi2_e*(q1i + q1im) + (3.d0/8.d0)*chi3_e*((q1i + q1im)**2)
+            kappa2 = kappa2 + 0.5d0*chi2_m*(q2i + q2im) + (3.d0/8.d0)*chi3_m*((q2i + q2im)**2)
+        end if
+
+        fwave(1,1,i) = b1 *(-z) / kappa1
         fwave(2,1,i) = b1 / kappa2
-        s(1,i) = -cim
+        s(1,i) = -c
 
-        fwave(1,2,i) = b2 *(zi) / kappa1
+        fwave(1,2,i) = b2 *(z) / kappa1
         fwave(2,2,i) = b2 / kappa2
-        s(2,i) = ci
+        s(2,i) = c
     end do
 
 !   compute the leftgoing and rightgoing fluctuations:
