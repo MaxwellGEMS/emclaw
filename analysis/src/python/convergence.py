@@ -285,16 +285,17 @@ class Convergence(object):
         self.debug   = False
         self.plot    = True
         if savedir is None:
-            savedir  = testdir
-        self.savedir = savedir
+            savedir    = testdir
+        self.savedir   = savedir
         self.plotdir   = None
         self.reportdir = None
         self.update_dir()
-        self.qn        = 0
-        self.pth       = 1.5
-        self.plot_format = 'eps'
+        self.qn           = 0
+        self.pth          = 1.5
+        self.plot_format  = 'eps'
         self.p_line_range = [2,7]
-        self.file_format = 'petsc'
+        self.file_format  = 'petsc'
+        self.homogeneous  = False
 
 class Errors1D(Convergence):
     def __init__(self,testdir='./',basedir='_output_',savedir=None,frame=0):
@@ -343,6 +344,9 @@ class Errors1D(Convergence):
 
             # load first pyclaw solution qn
             qclaw,xclaw,delta = self.getClaw(dirs)
+            if self.homogeneous:
+                auxclaw,xaux,daux = self.getAux(dirs)
+                qclaw = qclaw/auxclaw
 
             # get the error with respect to the exact solution (local and global)
             local_difference  = self.analytic_convergence(xclaw,qclaw,xmat,qmat,delta,local=True)
