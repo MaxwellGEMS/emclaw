@@ -43,19 +43,18 @@ def dq_source(solver,state,dt):
 
     return dq
 
-def em1D(mx=1024,num_frames=5,cfl=1.0,outdir='./_output',before_step=True,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True):
+def em1D(mx=1024,num_frames=5,cfl=1.0,outdir='./_output',before_step=True,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True,homogeneous=True):
 
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
-    if nl:
-        material.chi3_e = chi3
-        if em:
-            material.chi3_m = chi3
-
-        material.chi2_e = chi2
-        if em:
-            material.chi2_m = chi2
+    if not homogeneous:
+        if nl:
+            material.chi3_e = chi3
+            material.chi2_e = chi2
+            if em:
+                material.chi3_m = chi3
+                material.chi2_m = chi2
 
     if MPI.COMM_WORLD.rank==0:
         material._outdir = outdir
@@ -89,15 +88,22 @@ def em1D(mx=1024,num_frames=5,cfl=1.0,outdir='./_output',before_step=True,debug=
         solver.dq_src = dq_source
 
 #   Import Riemann and Tfluct solvers
-    import maxwell_1d_rp
+    if homogeneous:
+        import maxwell_1d_rp
+    else:
+        import maxwell_1d_nl_rp as maxwell_1d_rp
 
-    solver.tfluct_solver = True
+    solver.tfluct_solver = False
     solver.fwave         = True
     
     solver.rp = maxwell_1d_rp
 
     if solver.tfluct_solver:
-        import maxwell_1d_tfluct
+        if homogeneous:
+            import maxwell_1d_tfluct
+        else:
+            import maxwell_1d_nl_tfluct as maxwell_1d_tfluct
+
         solver.tfluct = maxwell_1d_tfluct
     
     solver.cfl_max     = cfl+0.05
@@ -139,6 +145,8 @@ def em1D(mx=1024,num_frames=5,cfl=1.0,outdir='./_output',before_step=True,debug=
     source.init(state)
     material.init(state)
 
+    state.q = state.q*state.aux[0:2,:]
+  
 #   controller
     claw = pyclaw.Controller()
     claw.tfinal = tf

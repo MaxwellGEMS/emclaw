@@ -210,18 +210,25 @@ class Convergence(object):
         setattr(self, 'plotdir', os.path.join(self.savedir,'_plots'))
         setattr(self, 'reportdir', os.path.join(self.savedir,'_report'))
 
-    def getClaw(self,dirs,frame=None,qn=None):
+    def getClaw(self,dirs,frame=None,qn=None,homogeneous=None):
         if frame is None:
             frame = self.frame
         if qn is None:
             qn = self.qn
+        if homogeneous is None:
+            homogeneous = self.homogeneous
 
         solution = Solution()
-        solution.read(frame,path=dirs,file_format=self.file_format,read_aux=False)
+
+        solution.read(frame,path=dirs,file_format=self.file_format,read_aux=self.homogeneous)
 
         qclaw  = solution.state.get_q_global()[qn]
         xclaw  = solution.state.grid.x.centers
         delta  = solution.state.grid.delta
+
+        if homogeneous:
+            print 'dividing by aux'
+            qclaw = qclaw/(solution.state.get_aux_global()[qn])
 
         return qclaw,xclaw,delta
 
@@ -278,6 +285,8 @@ class Convergence(object):
     def __init__(self,testdir='./',basedir='_output_',savedir=None,frame=0):
         self.testdir = testdir
         self.basedir = basedir
+        self.compare_dir = testdir
+        self.compare = False
         self.frame   = frame
         self.basemin = 7
         self.basemax = 15
@@ -325,8 +334,12 @@ class Errors1D(Convergence):
         self.update_dir()
 
         testlen = self.basemax-self.basemin+1
+        if self.compare:
+            add = 1
+        else:
+            add = 0
 
-        results = np.zeros([testlen,12])
+        results = np.zeros([testlen,12+add])
 
         qmat,xmat   = self.load_matlab()
         indmax,zoom_range = self.local_range(qmat,xmat)
@@ -344,9 +357,6 @@ class Errors1D(Convergence):
 
             # load first pyclaw solution qn
             qclaw,xclaw,delta = self.getClaw(dirs)
-            if self.homogeneous:
-                auxclaw,xaux,daux = self.getAux(dirs)
-                qclaw = qclaw/auxclaw
 
             # get the error with respect to the exact solution (local and global)
             local_difference  = self.analytic_convergence(xclaw,qclaw,xmat,qmat,delta,local=True)
@@ -355,6 +365,15 @@ class Errors1D(Convergence):
             # get the error with respect to the finest solution
             finest_difference = self.self_convergence(qclaw,qfinest,delta)
             
+            # compare against another claw solution
+            if self.compare:
+                dirs2 = os.path.join(self.compare_dir,self.basedir+str(enddir))
+                qclaw2,xclaw2,delta2 = self.getClaw(dirs2,homogeneous=False)
+                compare_difference = self.errors(qclaw,qclaw2,delta)
+                results[m,-1] = compare_difference[1]
+                figname = '_compare_'+str(self.frame)+'_m_'+str(int(m))
+                self.plot_solutions(xclaw,qclaw,xclaw2,qclaw2,figname=figname,titleon=False)
+
             # get the error with respect to the refined solution
             if enddir<self.basemax:
                 dir_refined = os.path.join(self.testdir,self.basedir+str(enddir+1))
@@ -373,8 +392,12 @@ class Errors1D(Convergence):
 
         # calc pth order
         results[0:-1,8:11] = np.log2(results[0:-1,[3,5,7]]/results[1:,[3,5,7]])
-        headers = ['$n_{cells}$','$h$','$E_e(h)$','$p_e$','$E_f(h)$','$p_f$','$E_s(h)$','$p_s$']
-        results = results[:,[0,1,3,8,5,9,7,10]]
+        if self.compare:
+            headers = ['$n_{cells}$','$h$','$E_e(h)$','$p_e$','$E_f(h)$','$p_f$','$E_s(h)$','$p_s$','comp']
+            results = results[:,[0,1,3,8,5,9,7,10,12]]
+        else:
+            headers = ['$n_{cells}$','$h$','$E_e(h)$','$p_e$','$E_f(h)$','$p_f$','$E_s(h)$','$p_s$']
+            results = results[:,[0,1,3,8,5,9,7,10]]
 
         try:
             from tabulate import tabulate
