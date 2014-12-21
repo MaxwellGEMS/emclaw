@@ -68,7 +68,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     if conservative:
         import maxwell_1d_rp
     else:
-        import maxwell_1d_nl_rp as maxwell_1d_rp
+        import maxwell_1d_nc_rp as maxwell_1d_rp
 
     solver.tfluct_solver = True
     solver.fwave         = True
@@ -79,7 +79,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
         if conservative:
             import maxwell_1d_tfluct
         else:
-            import maxwell_1d_nl_tfluct as maxwell_1d_tfluct
+            import maxwell_1d_nc_tfluct as maxwell_1d_tfluct
 
         solver.tfluct = maxwell_1d_tfluct
     

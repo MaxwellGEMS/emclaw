@@ -82,7 +82,7 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     if conservative:
         import maxwell_2d_rp
     else:
-        import maxwell_2d_nl_rp as maxwell_2d_rp
+        import maxwell_2d_nc_rp as maxwell_2d_rp
 
     solver.tfluct_solver = True
     solver.fwave = True
@@ -93,7 +93,7 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
         if conservative:
             import maxwell_2d_tfluct
         else:
-            import maxwell_2d_nl_tfluct as maxwell_2d_tfluct
+            import maxwell_2d_nc_tfluct as maxwell_2d_tfluct
 
     solver.tfluct = maxwell_2d_tfluct
 
