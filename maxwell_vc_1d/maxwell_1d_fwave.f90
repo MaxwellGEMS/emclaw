@@ -55,11 +55,11 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
     double precision :: q1i, q1im, q2i, q2im
     double precision :: df1, df2, b1, b2
     double precision :: epsi, epsim, mui, muim
-    double precision :: eo, mo, zo, co, dx
+    double precision :: eo, mo, zo, co
     double precision :: ci, cim, zi, zim
     double precision :: chi3_e, chi3_m
 
-    common /cparam/  dx, eo, mo, co, zo, nl, chi3_e, chi3_m
+    common /cparam/  chi3_e, chi3_m, eo, mo, co, zo, nl
 
 !   split the jump in q at each interface into waves
 
