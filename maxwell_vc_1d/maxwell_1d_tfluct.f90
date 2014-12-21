@@ -35,6 +35,7 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
     double precision :: df1, df2
     double precision :: epsi, epsim, mui, muim
     double precision :: eo, mo, zo, co
+    double precision :: chi3_e, chi3_m
 
     common /cparam/  eo, mo, co, zo, nl
 
