@@ -29,7 +29,7 @@ def grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl):
 
     return dx,dy,dt,tf
 
-def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,heading='x',shape='off',nl=False,psi=True,homogeneous=True):
+def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,heading='x',shape='off',nl=False,psi=True,conservative=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
@@ -79,7 +79,7 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     solver.max_steps   = int(2*tf/dt)
 
 #   Import Riemann and Tfluct solvers
-    if homogeneous:
+    if conservative:
         import maxwell_2d_rp
     else:
         import maxwell_2d_nl_rp as maxwell_2d_rp
@@ -90,7 +90,7 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     solver.rp = maxwell_2d_rp
 
     if solver.tfluct_solver:
-        if homogeneous:
+        if conservative:
             import maxwell_2d_tfluct
         else:
             import maxwell_2d_nl_tfluct as maxwell_2d_tfluct
@@ -146,7 +146,7 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     source.init(state)
     material.init(state)
 
-    if homogeneous:
+    if conservative:
         state.q = state.q*state.aux[0:3,:,:]
 
 #   controller

@@ -25,12 +25,12 @@ def grid_basic(x_lower,x_upper,mx,cfl):
 
     return dx,dt,tf
 
-def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True,homogeneous=True):
+def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True,conservative=True):
 
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
-    if not homogeneous:
+    if not conservative:
         if nl:
             material.chi3_e = chi3
             material.chi2_e = chi2
@@ -65,7 +65,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     solver.max_steps   = int(2*tf/dt)
     
 #   Import Riemann and Tfluct solvers
-    if homogeneous:
+    if conservative:
         import maxwell_1d_rp
     else:
         import maxwell_1d_nl_rp as maxwell_1d_rp
@@ -76,7 +76,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     solver.rp = maxwell_1d_rp
 
     if solver.tfluct_solver:
-        if homogeneous:
+        if conservative:
             import maxwell_1d_tfluct
         else:
             import maxwell_1d_nl_tfluct as maxwell_1d_tfluct
