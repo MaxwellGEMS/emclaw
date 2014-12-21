@@ -4,7 +4,7 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
 !
 !   This version outputs f-waves.
 
-!   Riemann solver for the time dependent nonlinear Maxwell em equations in 1d,
+!   Riemann solver for the time dependent nonlinear Maxwell equations in 1d conservative form,
 !   in this case eps and mu dependend on time and position,
 !   variable coefficients
 !       (q1)_t +  (q2/eta2)_x = 0
@@ -57,8 +57,9 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
     double precision :: epsi, epsim, mui, muim
     double precision :: eo, mo, zo, co, dx
     double precision :: ci, cim, zi, zim
+    double precision :: chi3_e, chi3_m
 
-    common /cparam/  dx, eo, mo, co, zo
+    common /cparam/  dx, eo, mo, co, zo, nl
 
 !   split the jump in q at each interface into waves
 
@@ -80,6 +81,17 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
 
         df1 = q2i/mui  - q2im/muim
         df2 = q1i/epsi - q1im/epsim
+
+        if (nl.eq.1) then
+            zi  = zi*sqrt((1.0d0 - 3.0d0*chi3_m*(q2i**2))/(1.0d0 - 3.0d0*chi3_e*(q1i**2))) 
+            zim = zim*sqrt((1.0d0 - 3.0d0*chi3_m*(q2im**2))/(1.0d0 - 3.0d0*chi3_e*(q1im**2))) 
+
+            ci  = ci*sqrt((1.0d0 - 3.0d0*chi3_m*(q2i**2))*(1.0d0 - 3.0d0*chi3_e*(q1i**2)))
+            cim = cim*sqrt((1.0d0 - 3.0d0*chi3_m*(q2im**2))*(1.0d0 - 3.0d0*chi3_e*(q1im**2)))
+
+            df1 = df1 - chi3_m*((q2i**3)/mui  - (q2im**3)/muim)
+            df2 = df2 - chi3_e*((q1i**3)/epsi - (q1im**3)/epsim)
+        end if
 
         b1 = (df2*zi  - df1)/(zi + zim)
         b2 = (df2*zim + df1)/(zi + zim)

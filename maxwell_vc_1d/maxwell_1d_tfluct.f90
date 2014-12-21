@@ -2,7 +2,7 @@
 subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,amdq2)
 ! ============================================================================
 !
-!   "Internal" Riemann solver for Maxwell's equations in 1d.
+!   "Internal" Riemann solver for Maxwell's equations in 1d conservative form.
 !
 !   On input, q     contains the cell average state vector
 !             ql    contains the state vector at the left edge of each cell
@@ -37,7 +37,7 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
     double precision :: epsi, epsim, mui, muim
     double precision :: eo, mo, zo, co
 
-    common /cparam/  eo, mo, co, zo
+    common /cparam/  eo, mo, co, zo, nl
 
     do i = 1-num_ghost, mx+num_ghost
         q1i   = qr(1,i)
@@ -52,6 +52,11 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
 
         df1 = q2i/mui  - q2im/muim
         df2 = q1i/epsi - q1im/epsim
+
+        if (nl.eq.1) then
+            df1 = df1 - chi3_m*((q2i**3)/mui  - (q2im**3)/muim)
+            df2 = df2 - chi3_e*((q1i**3)/epsi - (q1im**3)/epsim)
+        end if
 
         amdq2(1,i) = df1
         amdq2(2,i) = df2
