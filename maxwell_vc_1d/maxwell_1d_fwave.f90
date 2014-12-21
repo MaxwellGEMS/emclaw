@@ -51,7 +51,7 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
     double precision, intent(out) :: apdq(num_eqn,1-num_ghost:maxnx+num_ghost)
     double precision, intent(out) :: amdq(num_eqn,1-num_ghost:maxnx+num_ghost)
 
-    integer          :: i, m
+    integer          :: i, m, nl
     double precision :: q1i, q1im, q2i, q2im
     double precision :: df1, df2, b1, b2
     double precision :: epsi, epsim, mui, muim

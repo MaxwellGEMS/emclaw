@@ -30,7 +30,7 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
 
     double precision, intent(out) :: amdq2(num_eqn,1-num_ghost:maxnx+num_ghost)
 
-    integer          :: i
+    integer          :: i, nl
     double precision :: q1i, q1im, q2i, q2im
     double precision :: df1, df2
     double precision :: epsi, epsim, mui, muim
