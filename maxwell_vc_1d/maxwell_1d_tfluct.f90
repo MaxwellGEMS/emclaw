@@ -19,7 +19,6 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
 !   f(q) = |   q2/mu   |
 !          |_  q1/eps _|
 
-
     implicit none
 
     integer,          intent(in)  :: mx, num_ghost, maxnx, num_aux, num_eqn, num_waves

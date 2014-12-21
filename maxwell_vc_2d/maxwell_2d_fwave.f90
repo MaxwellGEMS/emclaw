@@ -38,7 +38,6 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
 !                                      and right state ql(:,i)
 !   From the basic clawpack routines, this routine is called with ql = qr
 
-
     implicit none
 
     integer,          intent(in)  :: ixy, mx, num_ghost, maxnx, num_aux, num_eqn, num_waves
