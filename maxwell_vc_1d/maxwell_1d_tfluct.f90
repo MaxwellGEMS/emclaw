@@ -37,7 +37,7 @@ subroutine tfluct1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,
     double precision :: eo, mo, zo, co
     double precision :: chi3_e, chi3_m
 
-    common /cparam/  eo, mo, co, zo, nl
+    common /cparam/  eo, mo, co, zo, nl, chi3_e, chi3_m
 
     do i = 1-num_ghost, mx+num_ghost
         q1i   = qr(1,i)
