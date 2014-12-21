@@ -53,6 +53,7 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
 
     integer          :: i, m, nl
     double precision :: q1i, q1im, q2i, q2im
+    double precision :: dq1i, dq1im, dq2i, dq2im
     double precision :: df1, df2, b1, b2
     double precision :: epsi, epsim, mui, muim
     double precision :: eo, mo, zo, co
@@ -83,11 +84,17 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
         df2 = q1i/epsi - q1im/epsim
 
         if (nl.eq.1) then
-            zi  = zi*sqrt((1.0d0 - 3.0d0*chi3_m*(q2i**2))/(1.0d0 - 3.0d0*chi3_e*(q1i**2))) 
-            zim = zim*sqrt((1.0d0 - 3.0d0*chi3_m*(q2im**2))/(1.0d0 - 3.0d0*chi3_e*(q1im**2))) 
+            dq1i  = 1.0d0 - 3.0d0*chi3_e*(q1i**2)
+            dq1im = 1.0d0 - 3.0d0*chi3_e*(q1im**2)
 
-            ci  = ci*sqrt((1.0d0 - 3.0d0*chi3_m*(q2i**2))*(1.0d0 - 3.0d0*chi3_e*(q1i**2)))
-            cim = cim*sqrt((1.0d0 - 3.0d0*chi3_m*(q2im**2))*(1.0d0 - 3.0d0*chi3_e*(q1im**2)))
+            dq2i  = 1.0d0 - 3.0d0*chi3_e*(q2i**2)
+            dq2im = 1.0d0 - 3.0d0*chi3_e*(q2im**2)
+
+            zi  = zi*sqrt(dq2i/dq1i) 
+            zim = zim*sqrt(dq2im/dq1im) 
+
+            ci  = ci*sqrt(dq2i*dq1i)
+            cim = cim*sqrt(dq2im*dq1im)
 
             df1 = df1 - chi3_m*((q2i**3)/mui  - (q2im**3)/muim)
             df2 = df2 - chi3_e*((q1i**3)/epsi - (q1im**3)/epsim)
