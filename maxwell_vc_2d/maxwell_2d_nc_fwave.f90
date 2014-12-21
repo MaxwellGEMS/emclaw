@@ -38,7 +38,6 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
 !                                      and right state ql(:,i)
 !   From the basic clawpack routines, this routine is called with ql = qr
 
-
     implicit none
 
     integer,          intent(in)  :: ixy, mx, num_ghost, maxnx, num_aux, num_eqn, num_waves
@@ -119,8 +118,8 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
             fwave(1,2,i) = 0.d0
             fwave(2,2,i) = b3*(z)/kappa2
             fwave(3,2,i) = b3/kappa3
-            s(1,i) = -c
-            s(2,i) = c
+            s(1,i) = -c/sqrt(eta2im*eta3im)
+            s(2,i) = c/sqrt(eta2i*eta3i)
         else
             df1 = dq3/vac1
             df3 = dq1/vac3
@@ -133,8 +132,8 @@ subroutine rpn2(ixy,maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr
             fwave(1,2,i) = b3*(-z)/kappa1
             fwave(2,2,i) = 0.d0
             fwave(3,2,i) = b3/kappa3
-            s(1,i) = -c
-            s(2,i) = c
+            s(1,i) = -c/sqrt(eta1im*eta3im)
+            s(2,i) = c/sqrt(eta1i*eta3i)
         endif   
     enddo
 
