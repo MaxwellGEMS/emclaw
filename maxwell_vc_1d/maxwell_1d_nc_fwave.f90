@@ -39,7 +39,6 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
 !                                    and right state ql(:,i)
 ! From the basic clawpack routines, this routine is called with ql = qr
 
-
     implicit none
 
     integer,          intent(in)  :: mx, num_ghost, maxnx, num_aux, num_eqn, num_waves
@@ -98,11 +97,11 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
 
         fwave(1,1,i) = b1 *(-z) / kappa1
         fwave(2,1,i) = b1 / kappa2
-        s(1,i) = -c
+        s(1,i) = -c/sqrt(epsim*muim)
 
         fwave(1,2,i) = b2 *(z) / kappa1
         fwave(2,2,i) = b2 / kappa2
-        s(2,i) = c
+        s(2,i) = c/sqrt(epsi*mui)
     end do
 
 !   compute the leftgoing and rightgoing fluctuations:

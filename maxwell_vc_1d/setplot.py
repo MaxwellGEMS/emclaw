@@ -170,14 +170,14 @@ def refind(current_data):
     return n
 
 def efield(current_data):
-    ef = current_data.q[0,:]
+    ef = current_data.q[0,:]/current_data.aux[0,:]
     return ef
 
 def hfield(current_data):
-    hf = current_data.q[1,:]
+    hf = current_data.q[1,:]/current_data.aux[1,:]
     return hf
 
 def ehfields(current_data):
-    ehfi = np.sqrt(current_data.q[0,:]**2 + current_data.q[1,:]**2)
+    ehfi = np.sqrt((current_data.q[0,:]/current_data.aux[0,:])**2 + (current_data.q[1,:]/current_data.aux[1,:])**2)
     return ehfi
 

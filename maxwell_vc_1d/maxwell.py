@@ -25,19 +25,18 @@ def grid_basic(x_lower,x_upper,mx,cfl):
 
     return dx,dt,tf
 
-def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True):
+def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True,conservative=True):
 
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
-    if nl:
-        material.chi3_e = chi3
-        if em:
-            material.chi3_m = chi3
-
-        material.chi2_e = chi2
-        if em:
-            material.chi2_m = chi2
+    if not conservative:
+        if nl:
+            material.chi3_e = chi3
+            material.chi2_e = chi2
+            if em:
+                material.chi3_m = chi3
+                material.chi2_m = chi2
 
     if MPI.COMM_WORLD.rank==0:
         material._outdir = outdir
@@ -66,7 +65,10 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     solver.max_steps   = int(2*tf/dt)
     
 #   Import Riemann and Tfluct solvers
-    import maxwell_1d_rp
+    if conservative:
+        import maxwell_1d_rp
+    else:
+        import maxwell_1d_nc_rp as maxwell_1d_rp
 
     solver.tfluct_solver = True
     solver.fwave         = True
@@ -74,7 +76,11 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     solver.rp = maxwell_1d_rp
 
     if solver.tfluct_solver:
-        import maxwell_1d_tfluct
+        if conservative:
+            import maxwell_1d_tfluct
+        else:
+            import maxwell_1d_nc_tfluct as maxwell_1d_tfluct
+
         solver.tfluct = maxwell_1d_tfluct
     
     solver.cfl_max     = cfl+0.5
@@ -91,8 +97,8 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
 
 #   before step configure
     if before_step:
-            solver.call_before_step_each_stage = True
-            solver.before_step = material.update_aux
+        solver.call_before_step_each_stage = True
+        solver.before_step = material.update_aux
 
 #   state setup
     state = pyclaw.State(domain,num_eqn,num_aux)

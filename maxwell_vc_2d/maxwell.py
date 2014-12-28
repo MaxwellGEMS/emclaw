@@ -29,7 +29,7 @@ def grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl):
 
     return dx,dy,dt,tf
 
-def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,heading='x',shape='pulse',nl=False,psi=True):
+def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,heading='x',shape='off',nl=False,psi=True,conservative=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
@@ -62,8 +62,6 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     num_waves = 2
     num_aux   = 6
 
-
-
     x = pyclaw.Dimension('x',x_lower,x_upper,mx)
     y = pyclaw.Dimension('y',y_lower,y_upper,my)
 
@@ -81,13 +79,22 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     solver.max_steps   = int(2*tf/dt)
 
 #   Import Riemann and Tfluct solvers
-    import maxwell_2d_rp
-    import maxwell_2d_tfluct
+    if conservative:
+        import maxwell_2d_rp
+    else:
+        import maxwell_2d_nc_rp as maxwell_2d_rp
 
     solver.tfluct_solver = True
     solver.fwave = True
 
     solver.rp = maxwell_2d_rp
+
+    if solver.tfluct_solver:
+        if conservative:
+            import maxwell_2d_tfluct
+        else:
+            import maxwell_2d_nc_tfluct as maxwell_2d_tfluct
+
     solver.tfluct = maxwell_2d_tfluct
 
     solver.cfl_max = cfl+0.5
@@ -114,8 +121,8 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
 
 #   before step configure
     if before_step:
-            solver.call_before_step_each_stage = True
-            solver.before_step = material.update_aux
+        solver.call_before_step_each_stage = True
+        solver.before_step = material.update_aux
 
 #   state setup
     state = pyclaw.State(domain,num_eqn,num_aux)
@@ -138,6 +145,9 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
 #   array initialization
     source.init(state)
     material.init(state)
+
+    if conservative:
+        state.q = state.q*state.aux[0:3,:,:]
 
 #   controller
     claw = pyclaw.Controller()

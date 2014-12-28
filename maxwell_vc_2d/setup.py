@@ -11,8 +11,10 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('', parent_package, top_path)
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
-    config.add_extension('maxwell_2d_rp',pjoin(this_dir,'maxwell_2d_nl_fwave.f90'))
-    config.add_extension('maxwell_2d_tfluct',pjoin(this_dir,'maxwell_2d_nl_tfluct.f90'))
+    config.add_extension('maxwell_2d_nc_rp',pjoin(this_dir,'maxwell_2d_nc_fwave.f90'))
+    config.add_extension('maxwell_2d_nc_tfluct',pjoin(this_dir,'maxwell_2d_nc_tfluct.f90'))
+    config.add_extension('maxwell_2d_rp',pjoin(this_dir,'maxwell_2d_fwave.f90'))
+    config.add_extension('maxwell_2d_tfluct',pjoin(this_dir,'maxwell_2d_tfluct.f90'))
 
     return config
 
