@@ -30,13 +30,12 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
-    if not conservative:
-        if nl:
-            material.chi3_e = chi3
-            material.chi2_e = chi2
-            if em:
-                material.chi3_m = chi3
-                material.chi2_m = chi2
+    if nl:
+        material.chi3_e = chi3
+        material.chi2_e = chi2
+        if em:
+            material.chi3_m = chi3
+            material.chi2_m = chi2
 
     if MPI.COMM_WORLD.rank==0:
         material._outdir = outdir
@@ -50,7 +49,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
 
 #   grid pre calculations and domain setup
     dx,dt,tf = grid_basic(x_lower,x_upper,mx,cfl)
-    x = pyclaw.Dimension('x',x_lower,x_upper,mx)
+    x = pyclaw.Dimension(x_lower,x_upper,mx,name='x')
     domain = pyclaw.Domain([x])
 
 #   Solver settings
@@ -114,6 +113,7 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     state.problem_data['dx']     = state.grid.x.delta
     state.problem_data['nl']     = nl
     state.problem_data['psi']    = psi
+    state.problem_data['conservative'] = conservative
 
     source._dx   = state.grid.x.delta
     material._dx = state.grid.x.delta
@@ -121,6 +121,9 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
 #   array initialization
     source.init(state)
     material.init(state)
+
+    if conservative:
+        state.q = state.q*state.aux[0:2,:]
 
 #   controller
     claw = pyclaw.Controller()
