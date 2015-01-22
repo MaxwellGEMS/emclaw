@@ -87,8 +87,8 @@ subroutine rp1(maxnx,num_eqn,num_waves,num_aux,num_ghost,mx,ql,qr,auxl,auxr,fwav
             dq1i  = 1.0d0 - 3.0d0*chi3_e*(q1i**2)
             dq1im = 1.0d0 - 3.0d0*chi3_e*(q1im**2)
 
-            dq2i  = 1.0d0 - 3.0d0*chi3_e*(q2i**2)
-            dq2im = 1.0d0 - 3.0d0*chi3_e*(q2im**2)
+            dq2i  = 1.0d0 - 3.0d0*chi3_m*(q2i**2)
+            dq2im = 1.0d0 - 3.0d0*chi3_m*(q2im**2)
 
             zi  = zi*sqrt(dq2i/dq1i) 
             zim = zim*sqrt(dq2im/dq1im) 
