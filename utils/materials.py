@@ -17,7 +17,7 @@ def user_material():
 class Material(object):
 
     def save(self):
-        print self._outdir
+        print(self._outdir)
         """save class as self.name.txt"""
         try:
             os.makedirs(self._outdir)
@@ -56,7 +56,7 @@ class Material(object):
     def dump(self):
         for attr in sorted(dir(self)):
             if not attr.startswith('_'):
-                print "%s = %s" % (attr, getattr(self, attr))
+                print("%s = %s" % (attr, getattr(self, attr)))
 
     def _dump_to_latex(self):
         from tabulate import tabulate
@@ -65,7 +65,7 @@ class Material(object):
         for attr in sorted(dir(self)):
             if not attr.startswith('_'):
                 s = getattr(self,attr)
-                if isinstance(s, (str, unicode)):
+                if isinstance(s, str):
                     strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + s + r' \\' + '\n'
                 elif isinstance(s,float):
                     strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
@@ -96,7 +96,7 @@ class Material(object):
     def _dump(self,obj):
         for attr in sorted(dir(obj)):
             try:
-                print "%s = %s" % (attr, getattr(obj, attr))
+                print("%s = %s" % (attr, getattr(obj, attr)))
             except:
                 pass
 
@@ -221,7 +221,7 @@ class Material(object):
 
     def init(self,state):
         grid = state.grid
-        grid.compute_c_centers()
+        grid._compute_c_centers()
         t = state.t
         if state.num_dim==1:
             x = grid.x.centers
@@ -362,8 +362,8 @@ class Material(object):
         self.custom    = False
         self.averaged  = False
         self.nonlinear = True
-        self.bkg_eta   = np.ones([self.num_aux/2])
-        self.delta     = np.ones([self.num_aux/2])
+        self.bkg_eta   = np.ones([self.num_aux//2])
+        self.delta     = np.ones([self.num_aux//2])
         self.bkg_n     = np.ones([self.num_dim])
         self.n_max     = np.ones([self.num_dim])
         self._outdir   = './_output'

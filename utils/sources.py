@@ -40,7 +40,7 @@ class Sources:
         
         setattr(self,'c',material.co)
 
-        for key,value in dictin.iteritems():
+        for key,value in dictin.items():
             setattr(self,key,value)
 
         if hasattr(self,'wavelength'):
@@ -49,7 +49,7 @@ class Sources:
             setattr(self,'wavelength',2.0*np.pi*material.co/self.omega)
         else:
             msg = 'You must define either wavelength or omega'
-            print msg
+            print(msg)
 
     def gaussian(self,x,dx,s=1.0,xo=0.0,v=0.0,t=0.0):
         try:
@@ -60,14 +60,14 @@ class Sources:
         arg = xo + v*t - x
         
         if self.averaged:
-            print 'averaging'
+            print('averaging')
             ddx = dx/2.0
             erravg = (np.sqrt(np.pi)*s*(erf((ddx + arg)/s) + erf((ddx - arg)/s)))/(2.0*dx)
         else:
             erravg = np.exp(-arg**2/s**2)
 
         if self.cut:
-            print 'cutting'
+            print('cutting')
             span = ((arg**2/s**2)<=(4.0*s))
             erravg = erravg*span
 
@@ -168,7 +168,7 @@ class Sources:
     def dump(self):
         for attr in sorted(dir(self)):
             if not attr.startswith('_'):
-                print "%s = %s" % (attr, getattr(self, attr))
+                print("%s = %s" % (attr, getattr(self, attr)))
 
     def _dump_to_latex(self):
         from tabulate import tabulate
@@ -177,7 +177,7 @@ class Sources:
         for attr in sorted(dir(self)):
             if not attr.startswith('_'):
                 s = getattr(self,attr)
-                if isinstance(s, (str, unicode)):
+                if isinstance(s, str):
                     strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + s + r' \\' + '\n'
                 elif isinstance(s,float):
                     strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'

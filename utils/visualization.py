@@ -68,7 +68,7 @@ class toolbox(object):
     def dump(self):
         for attr in sorted(dir(self)):
             if not attr.startswith('_'):
-                print "%s = %s" % (attr, getattr(self, attr))
+                print("%s = %s" % (attr, getattr(self, attr)))
 
     def get_info(self,pkl_file=None,keys=None,debug=False):
         if pkl_file is None: pkl_file = os.path.join(self.outdir,self._pkl_base+str(0).zfill(4))
@@ -132,7 +132,7 @@ class toolbox(object):
 
         for frame in self.frame_range:
             if ptc_split:
-                if PETSc.COMM_WORLD.rank==0: print frame
+                if PETSc.COMM_WORLD.rank==0: print(frame)
                 if split_q:
                     ptcname = self._ptc_base+str(frame).zfill(4)
                     ptcfile = os.path.join(outdir,ptcname)
@@ -214,8 +214,8 @@ class toolbox(object):
             num_var = 3
 
         if (debug and PETSc.COMM_WORLD.rank==0):
-            print v.shape
-            print ptcfile
+            print(v.shape)
+            print(ptcfile)
 
         for i in irange:
             mpifile = os.path.join(outdir,affix[1]+str(i).zfill(2)+'.'+affix[0])
@@ -274,11 +274,11 @@ class Plot2D(toolbox):
     def make_plots(self,plot_p=True):
         x,y = np.meshgrid(self.x,self.y)
         for frame in self.frame_range:
-            print 'ploting frame ',frame
+            print('ploting frame ',frame)
             v = self.read_p(frame)
             v = np.reshape(v,[self.num_mp,self.num_cells[0],self.num_cells[1]], order='F')
             for plot in self.plots:
-                print plot
+                print(plot)
                 self.plot_field(x,y,u=v[0].T,v=v[1].T,F=v[3].T,plot=plot,figname=plot+'.'+str(frame).zfill(4),format='png')
             del v
 
@@ -305,5 +305,5 @@ if __name__=="__main__":
     from clawpack.pyclaw import util
     import sys
     args,app_args = util._info_from_argv(sys.argv)
-    print app_args
+    print(app_args)
     split_and_xmf(**app_args)
