@@ -27,17 +27,19 @@ solvers['3d'] = [
 ]
 
 
-def configuration(parent_package='riemann',top_path=None):
+def configuration(package_name = 'riemann', parent_name = 'emclaw', top_path = None):
     from numpy.distutils.misc_util import Configuration
-    config = Configuration(parent_package, parent_package, top_path)
+    config = Configuration(package_name = package_name,
+                           parent_name = parent_name,
+                           top_path = top_path)
     this_dir = os.path.dirname(os.path.realpath(__file__))
-    print('########: ', this_dir)
+
     for dimension in range(3):
         d = str(dimension + 1) + 'd'
         for solver in solvers[d]:
             rp_subdir = 'maxwell_' + d
             ext_name = solver.split('.')[0].replace('fwave', 'rp')
-            config.add_extension(ext_name, pjoin(this_dir, rp_subdir, solver))
+            config.add_extension(name = ext_name, sources = pjoin(this_dir, rp_subdir, solver))
 
     return config
 
