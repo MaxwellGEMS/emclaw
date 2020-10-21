@@ -7,6 +7,7 @@ sys.path.append(os.path.realpath('../'))
 
 from utils.materials import Material1D
 from utils.sources import Source1D
+from utils import basics
 
 material = Material1D(shape='homogeneous')
 material.setup()
@@ -18,35 +19,15 @@ source.setup()
 x_lower = 0.
 x_upper = 100.
 
-def grid_basic(x_lower,x_upper,mx,cfl):
-    dx = (x_upper-x_lower)/mx
-    dt = 0.9*cfl/(material.co*np.sqrt(1.0/(dx**2)))
-    tf = (x_upper-x_lower)/source.v
-
-    return dx,dt,tf
-
-def set_outdirs(outdir, debug):
-    material._outdir = outdir
-    source._outdir   = outdir
-    if debug: 
-        material._dump_to_latex()
-        source._dump_to_latex()
-
 def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5, lim_type = 2,  cfl = 1.0, conservative = True,
          chi3 = 0.0, chi2 = 0.0, nl = False, psi = True, em = True, before_step = False,
          debug = False, outdir = './_output', output_style = 1):
 
     if use_petsc:
         import clawpack.petclaw as pyclaw
+        import petsc4py.PETSc as MPI
     else:
         from clawpack import pyclaw
-
-    try:
-        import petsc4py.PETSc as MPI
-        parallel = True
-    except:
-        print('petsc4py not available')
-        parallel = False
 
     if nl:
         material.chi3_e = chi3
@@ -55,17 +36,17 @@ def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5,
             material.chi3_m = chi3
             material.chi2_m = chi2
 
-    if np.logical_and(parallel, MPI.COMM_WORLD.rank==0):
-        set_outdirs(outdir, debug)
+    if np.logical_and(use_petsc, MPI.COMM_WORLD.rank==0):
+        basics.set_outdirs(material, source, outdir = outdir, debug = debug)
     else:
-        set_outdirs(outdir, debug)
+        basics.set_outdirs(material, source, outdir = outdir, debug = debug)
 
     num_eqn   = 2
     num_waves = 2
     num_aux   = 4
 
 #   grid pre calculations and domain setup
-    dx,dt,tf = grid_basic(x_lower,x_upper,mx,cfl)
+    dx,dt,tf = basics.grid_basic(x_lower, x_upper, mx, cfl, material.co, source.v)
     x = pyclaw.Dimension(x_lower,x_upper,mx,name='x')
     domain = pyclaw.Domain([x])
 
