@@ -1,13 +1,9 @@
 import sys
 import os
 import numpy as np
-
-sys.path.append(os.path.realpath('../utils'))
-sys.path.append(os.path.realpath('../'))
-
-from utils.materials import Material1D
-from utils.sources import Source1D
-from utils import basics
+from emclaw.utils.materials import Material1D
+from emclaw.utils.sources import Source1D
+from emclaw.utils import basics
 
 material = Material1D(shape='homogeneous')
 material.setup()
@@ -46,7 +42,7 @@ def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5,
     num_aux   = 4
 
 #   grid pre calculations and domain setup
-    dx,dt,tf = basics.grid_basic(x_lower, x_upper, mx, cfl, material.co, source.v)
+    dx, dt, tf = basics.grid_basic([[x_lower, x_upper, mx]], cfl, material.co, source.v)
     x = pyclaw.Dimension(x_lower,x_upper,mx,name='x')
     domain = pyclaw.Domain([x])
 
@@ -64,9 +60,9 @@ def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5,
     
 #   Import Riemann and Tfluct solvers
     if conservative:
-        import maxwell_1d_rp
+        from emclaw.riemann import maxwell_1d_rp
     else:
-        import maxwell_1d_nc_rp as maxwell_1d_rp
+        from emclaw.riemann import maxwell_1d_nc_rp as maxwell_1d_rp
 
     solver.tfluct_solver = True
     solver.fwave         = True
@@ -75,9 +71,9 @@ def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5,
 
     if solver.tfluct_solver:
         if conservative:
-            import maxwell_1d_tfluct
+            from emclaw.riemann import maxwell_1d_tfluct
         else:
-            import maxwell_1d_nc_tfluct as maxwell_1d_tfluct
+            from emclaw.riemann import maxwell_1d_nc_tfluct as maxwell_1d_tfluct
 
         solver.tfluct = maxwell_1d_tfluct
     
