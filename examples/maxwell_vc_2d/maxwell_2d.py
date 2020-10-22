@@ -1,12 +1,9 @@
 import sys
 import os
 import numpy as np
-
-sys.path.append(os.path.realpath('../utils'))
-sys.path.append(os.path.realpath('../'))
-
-from utils.materials import Material2D
-from utils.sources import Source2D
+from emclaw.utils.materials import Material2D
+from emclaw.utils.sources import Source2D
+from emclaw.utils import basics
 
 x_lower = 0.0
 x_upper = 50.0
@@ -21,20 +18,9 @@ material = Material2D(shape='homogeneous',metal=False)
 material.setup()
 material._calculate_n()
 
-def grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl):
-    dx = (x_upper-x_lower)/mx
-    dy = (y_upper-y_lower)/my
-    dt = 0.90/(material.co*np.sqrt(1.0/(dx**2)+1.0/(dy**2)))
-    tf = 2.0*(x_upper-x_lower+5.0)/material.v
-
-    return dx,dy,dt,tf
-
-def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,heading='x',shape='off',nl=False,psi=True,conservative=True):
+def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',use_petsc=True, before_step=False,debug=False,heading='x',shape='off',nl=False,psi=True,conservative=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
-
-#   grid pre calculations and domain setup
-    dx,dy,dt,tf = grid_basic(x_lower,x_upper,y_lower,y_upper,mx,my,cfl)
 
     source = Source2D(material,shape=shape,wavelength=2.0)
 
@@ -54,6 +40,10 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     source.heading = heading
     source.averaged = True
 
+    #   grid pre calculations and domain setup
+    dx,dy,dt,tf = basics.grid_basic([[x_lower,x_upper,mx], [y_lower,y_upper,my]], 
+                                    cfl = cfl, co = material.co, v = source.v)
+
     if (debug and MPI.COMM_WORLD.rank==0):
         material.dump()
         source.dump()
@@ -62,8 +52,8 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     num_waves = 2
     num_aux   = 6
 
-    x = pyclaw.Dimension('x',x_lower,x_upper,mx)
-    y = pyclaw.Dimension('y',y_lower,y_upper,my)
+    x = pyclaw.Dimension(x_lower,x_upper,mx, name = 'x')
+    y = pyclaw.Dimension(y_lower,y_upper,my, name = 'y')
 
     domain = pyclaw.Domain([x,y])
 
@@ -71,7 +61,8 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
     solver = pyclaw.SharpClawSolver2D()
     solver.num_waves  = num_waves
     solver.num_eqn    = num_eqn
-    solver.weno_order = 5
+    solver.reconstruction_order = 5
+    solver.lim_type = 2
 
     solver.dt_variable = True
     solver.dt_initial  = dt/2.0
@@ -80,9 +71,9 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
 
 #   Import Riemann and Tfluct solvers
     if conservative:
-        import maxwell_2d_rp
+        from emclaw.riemann import maxwell_2d_rp
     else:
-        import maxwell_2d_nc_rp as maxwell_2d_rp
+        from emclaw.riemann import maxwell_2d_nc_rp as maxwell_2d_rp
 
     solver.tfluct_solver = True
     solver.fwave = True
@@ -91,9 +82,9 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',before_step=Fals
 
     if solver.tfluct_solver:
         if conservative:
-            import maxwell_2d_tfluct
+            from emclaw.riemann import maxwell_2d_tfluct
         else:
-            import maxwell_2d_nc_tfluct as maxwell_2d_tfluct
+            from emclaw.riemann import maxwell_2d_nc_tfluct as maxwell_2d_tfluct
 
     solver.tfluct = maxwell_2d_tfluct
 
