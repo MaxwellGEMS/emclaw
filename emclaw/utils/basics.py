@@ -2,7 +2,8 @@ import numpy as np
 import pickle
 import os
 
-def grid_basic(x_lower, x_upper, mx, cfl, co = 1.0, v = 1.0):
+def grid_basic(dim_lims,
+               cfl, co = 1.0, v = 1.0):
     """grid_basic(x_lower, x_upper, mx, cfl, co = 1, v = 1)
 
     Args:
@@ -18,12 +19,13 @@ def grid_basic(x_lower, x_upper, mx, cfl, co = 1.0, v = 1.0):
         dt (dbl): time step
         tf (dbl): final time
     """
-    
-    dx = (x_upper-x_lower)/mx
-    dt = 0.9*cfl/(co*np.sqrt(1.0/(dx**2)))
-    tf = (x_upper-x_lower)/v
 
-    return dx,dt,tf
+    dj = [(ds[1] - ds[0])/ds[2] for ds in dim_lims]
+    dt_div = np.sum([1.0/x**2 for x in dj])
+    dt = 0.9*cfl/(co*np.sqrt(dt_div))
+    tf = 2.0*(dim_lims[0][1] - dim_lims[0][0])/np.min(v)
+
+    return *dj, dt, tf
 
 def set_outdirs(material, source, outdir, debug):
     """set_outdirs(material, source, outdir, debug)
