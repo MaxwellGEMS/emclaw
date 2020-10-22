@@ -41,7 +41,7 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',use_petsc=True, 
     source.averaged = True
 
     #   grid pre calculations and domain setup
-    dx,dy,dt,tf = basics.grid_basic([[x_lower,x_upper,mx], [y_lower,y_upper,my]], 
+    _, _, dt,tf = basics.grid_basic([[x_lower,x_upper,mx], [y_lower,y_upper,my]], 
                                     cfl = cfl, co = material.co, v = source.v)
 
     if (debug and MPI.COMM_WORLD.rank==0):

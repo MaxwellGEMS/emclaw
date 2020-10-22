@@ -1,13 +1,9 @@
 import sys
 import os
 import numpy as np
-
-sys.path.append(os.path.realpath('../utils'))
-sys.path.append(os.path.realpath('../'))
-
-
-from utils.materials import Material3D
-from utils.sources import Source3D
+from emclaw.utils.materials import Material3D
+from emclaw.utils.sources import Source3D
+from emclaw.utils import basics
 
 x_lower = 0.0
 x_upper = 10.0
@@ -37,20 +33,11 @@ source.setup()
 source.transversal_offset = [sy/2.0,sz/2.0]
 source.transversal_width  = [sy/2.0,sz/2.0]
 
-def grid_basic(x_lower,x_upper,y_lower,y_upper,z_lower,z_upper,mx,my,mz,cfl):
-    dx = (x_upper-x_lower)/mx
-    dy = (y_upper-y_lower)/my
-    dz = (z_upper-z_lower)/mz
-    dt = 0.90/(material.co*np.sqrt(1.0/(dx**2)+1.0/(dy**2)+1.0/(dz**2)))
-    tf = (x_upper-x_lower)/1.0
-    
-    return dx,dy,dz,dt,tf
-
-def em2D(mx=64,my=64,mz=64,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,nl=False,psi=True):
+def em3D(mx=64, my=64, mz=64, num_frames=10, cfl=1.0, outdir='./_output', use_petsc=True, before_step=False, debug=False, nl=False, psi=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
-    if MPI.COMM_WORLD.rank==0:
+    if np.logical_and(debug, MPI.COMM_WORLD.rank==0):
         material.dump()
         source.dump()
 
@@ -59,19 +46,20 @@ def em2D(mx=64,my=64,mz=64,num_frames=10,cfl=1.0,outdir='./_output',before_step=
     num_aux   = 12
 
 #   grid pre calculations and domain setup
-    dx,dy,dz,dt,tf = grid_basic(x_lower,x_upper,y_lower,y_upper,z_lower,z_upper,mx,my,mz,cfl)
+    _, _, _, dt,tf = basics.grid_basic([[x_lower,x_upper,mx], [y_lower,y_upper,my], [z_lower,z_upper,mz]], cfl = cfl, co = material.co, v = source.v)
 
-    x = pyclaw.Dimension('x',x_lower,x_upper,mx)
-    y = pyclaw.Dimension('y',y_lower,y_upper,my)
-    z = pyclaw.Dimension('z',z_lower,z_upper,mz)
+    x = pyclaw.Dimension(x_lower,x_upper,mx, name = 'x',)
+    y = pyclaw.Dimension(y_lower,y_upper,my, name = 'y',)
+    z = pyclaw.Dimension(z_lower,z_upper,mz, name = 'z',)
     
-    domain = pyclaw.Domain([x,y,z])
+    domain = pyclaw.Domain([x, y, z])
 
 #   Solver settings
     solver = pyclaw.SharpClawSolver3D()
     solver.num_waves  = num_waves
     solver.num_eqn    = num_eqn
-    solver.weno_order = 5
+    solver.reconstruction_order = 5
+    solver.lim_type = 2
 
     solver.dt_variable = True
     solver.dt_initial  = dt/2.0
@@ -79,8 +67,8 @@ def em2D(mx=64,my=64,mz=64,num_frames=10,cfl=1.0,outdir='./_output',before_step=
     solver.max_steps   = int(2*tf/dt)
     
 #   Import Riemann and Tfluct solvers
-    import maxwell_3d_rp
-    import maxwell_3d_tfluct
+    from emclaw.riemann import maxwell_3d_nc_rp as maxwell_3d_rp
+    from emclaw.riemann import maxwell_3d_nc_tfluct as maxwell_3d_tfluct
 
     solver.tfluct_solver = True
     solver.fwave = True
@@ -149,4 +137,4 @@ def em2D(mx=64,my=64,mz=64,num_frames=10,cfl=1.0,outdir='./_output',before_step=
 if __name__=="__main__":
     import sys
     from clawpack.pyclaw.util import run_app_from_main
-    output = run_app_from_main(em2D)
+    output = run_app_from_main(em3D)
