@@ -57,3 +57,6 @@ target/
 
 # Mac related
 .DS_Store
+
+# emclaw
+_output
