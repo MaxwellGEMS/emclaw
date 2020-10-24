@@ -165,7 +165,7 @@ def assemble_q(path='./_output',frame_plot_range=[0],vecmagnitude=True,poynting=
 
         if len(x[q[0]==q[0].max()])>=2:
             sampled[f,1] = x[q[0]==q[0].max()][-1]
-            print len(x[q[0]==q[0].max()])
+            print(len(x[q[0]==q[0].max()]))
         sampled[f,3] = q[0].max()
         sampled[f,4] = q[1].max()
 
@@ -207,24 +207,24 @@ def postprocess_1d(outdir='./_output',base_name='_res_',outsuffix='',read_aux=Tr
 
     outdirs = sorted(glob(outdir))
     summary = {}
-    print outdirs
+    print(outdirs)
     summarypath = '/simdesk/sandbox/emclaw/results/nonlinear/norip/_summary'+outsuffix+'_b_'
     for k,dirs in enumerate(outdirs):
-        print dirs
+        print(dirs)
         figspath = os.path.join(dirs,'_figures')
         binpath  = os.path.join(dirs,'_bin')
         ##### alternative for rip/norip test
         base_name_dir = dirs.split('_')
-        print base_name_dir
+        print(base_name_dir)
         base_name = base_name_dir[-1]+'_'
         #base_name = base_name_dir[-1]+'_'+base_name_dir[-2]+'_'
-        print base_name
+        print(base_name)
         figspath = os.path.join('/simdesk/sandbox/emclaw/results/nonlinear/norip/',base_name_dir[-2])
-        print figspath
+        print(figspath)
         #vrip = float(base_name_dir[3].split('v')[1])/100.0
         #if vrip==6349/100.0: vrip =0.6349
         vrip = 1.0/np.sqrt(1.5)
-        print vrip
+        print(vrip)
         # base_name = base_name_dir[-1]+'_' #base_name_dir[3]+'_'+base_name_dir[4]+'_'
         # #### alternative for sint
         # base_name_dir = dirs.split('_')
@@ -254,7 +254,7 @@ def postprocess_1d(outdir='./_output',base_name='_res_',outsuffix='',read_aux=Tr
         waterfall_plot(np.sqrt(Q[:,1,:]**2 + Q[:,0,:]**2),x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_i',
                 cbar_label='$I_{max}\quad (a.u.)$')
         if read_aux:
-            print 'read'
+            print('read')
             waterfall_plot(10.0*np.sqrt(A[:,1,:]*A[:,0,:]),x,sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_n',
                     cbar_label='$n_{max}\quad (a.u.)$')
             waterfall_plot(Q[:,1,:]*Q[:,0,:],x,np.sqrt(A[:,1,:]*A[:,0,:]),sampling=5,cmap=colores,num_colors=num_frames,outdir=figspath,outname=base_name+'waterfall_sn',
@@ -416,5 +416,5 @@ if __name__ == "__main__":
     from clawpack.pyclaw import util
     import sys
     args,app_args = util._info_from_argv(sys.argv)
-    print app_args
+    print(app_args)
     postprocess_1d(**app_args)

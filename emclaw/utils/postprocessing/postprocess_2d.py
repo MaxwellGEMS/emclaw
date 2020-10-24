@@ -53,10 +53,10 @@ def waterfall_plot(q,x,sampling=10,cmap=None,num_colors=100,outdir='./',outname=
     plt.hold(True)
     colorVal = 'b'
     vmax = q[:,:].max()
-    print vmax,len(q)
+    # print vmax,len(q)
     for n in range(0,len(q),sampling):
         if cmap is not None:
-            print q[n,:].max()
+            # print q[n,:].max()
             colorVal = get_color(value=q[n,:].max(),cmap=cmap,vmax=vmax+.1,num_colors=num_colors)
 
         plt.plot(x,q[n,:]+n/10.0,label=str(n),color=colorVal,alpha=0.7)
@@ -238,12 +238,12 @@ def assemble_q(path='./_output',frame_plot_range=[0],poynting=True,read_aux=Fals
     d_map_temp = [[],[]]
     sol = {}
     
-    print frame_plot_range
+    # print frame_plot_range
     sampled = np.zeros([num_frames,9])
     plot_aux = True
     # load the frames and assemble values
     for f,frame in enumerate(frame_plot_range):
-        print frame
+        # print frame
         ql = [[],[]]
         dl = [[],[]]
         if f==0:
@@ -321,10 +321,10 @@ def postprocess(outdir='./_output',multiple=False,overwrite=False,sampling=5,sav
         outdir = outdir+'*'
 
     outdirs = sorted(glob(outdir))
-    print outdirs
+    # print outdirs
 
     for dirs in outdirs:
-        print dirs
+        # print dirs
         
         figspath = os.path.join(dirs,'_figures')
         binpath  = os.path.join(dirs,'_bin')
@@ -347,7 +347,7 @@ def postprocess(outdir='./_output',multiple=False,overwrite=False,sampling=5,sav
             Q,d,summary = assemble_q(path=dirs,frame_plot_range=frame_plot_range,poynting=poynting,read_aux=True,
                 update_aux=update_aux,frame_split=frame_split,split_q=split_q,figspath=figspath,binpath=binpath,cut=cut)
 
-            print Q.shape
+            # print Q.shape
 
             colores = get_cmap(num_colors=summary['num_frames']+1)
             waterfall_plot(Q[0,:,:],d[0,0,:],sampling=sampling,cmap=colores,num_colors=summary['num_frames'],
@@ -360,10 +360,10 @@ def postprocess(outdir='./_output',multiple=False,overwrite=False,sampling=5,sav
 
 # num_frames = len(frame_plot_range)
 if __name__ == "__main__":
-    print 'la'
+    # print 'la'
     from clawpack.pyclaw import util
     import sys
     args,app_args = util._info_from_argv(sys.argv)
-    print app_args
-    print frame_plot_range
+    # print app_args
+    # print frame_plot_range
     postprocess(**app_args)

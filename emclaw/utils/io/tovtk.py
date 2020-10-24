@@ -1,4 +1,4 @@
-from inout import IO
+import emclaw.utils.io as IO
 import os
 import numpy as np
 import scipy as sp
@@ -35,12 +35,12 @@ if __name__ == "__main__":
     import sys
     path = sys.argv[1]
     num_frames = int(sys.argv[2])
-    print 'going to path:', path
-    print 'number of frames:', num_frames
+    print('going to path:', path)
+    print('number of frames:', num_frames)
     quad = np.zeros([3,num_frames+1])
     file_name = os.join.path(path,'quad.txt')
     for i in range(0,num_frames+1):
-        print i
+        print(i)
         sol = IO()
         sol.path = path
         sol.frame = i
