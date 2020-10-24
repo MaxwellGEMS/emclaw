@@ -1,12 +1,9 @@
 import sys
 import os
 import numpy as np
-
-sys.path.append(os.path.realpath('../utils'))
-sys.path.append(os.path.realpath('../'))
-
-from utils.materials import Material1D
-from utils.sources import Source1D
+from emclaw.utils.materials import Material1D
+from emclaw.utils.sources import Source1D
+from emclaw.utils import basics
 
 material = Material1D(shape='homogeneous')
 material.setup()
@@ -18,17 +15,15 @@ source.setup()
 x_lower = 0.
 x_upper = 100.
 
-def grid_basic(x_lower,x_upper,mx,cfl):
-    dx = (x_upper-x_lower)/mx
-    dt = 0.9*cfl/(material.co*np.sqrt(1.0/(dx**2)))
-    tf = (x_upper-x_lower)/source.v
+def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5, lim_type = 2,  cfl = 1.0, conservative = True,
+         chi3 = 0.0, chi2 = 0.0, nl = False, psi = True, em = True, before_step = False,
+         debug = False, outdir = './_output', output_style = 1):
 
-    return dx,dt,tf
-
-def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debug=False,chi3=0.0,chi2=0.0,nl=False,psi=True,em=True,conservative=True):
-
-    import clawpack.petclaw as pyclaw
-    import petsc4py.PETSc as MPI
+    if use_petsc:
+        import clawpack.petclaw as pyclaw
+        import petsc4py.PETSc as MPI
+    else:
+        from clawpack import pyclaw
 
     if nl:
         material.chi3_e = chi3
@@ -37,18 +32,17 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
             material.chi3_m = chi3
             material.chi2_m = chi2
 
-    if MPI.COMM_WORLD.rank==0:
-        material._outdir = outdir
-        source._outdir   = outdir
-        material._dump_to_latex()
-        source._dump_to_latex()
+    if np.logical_and(use_petsc, MPI.COMM_WORLD.rank==0):
+        basics.set_outdirs(material, source, outdir = outdir, debug = debug)
+    else:
+        basics.set_outdirs(material, source, outdir = outdir, debug = debug)
 
     num_eqn   = 2
     num_waves = 2
     num_aux   = 4
 
 #   grid pre calculations and domain setup
-    dx,dt,tf = grid_basic(x_lower,x_upper,mx,cfl)
+    dx, dt, tf = basics.grid_basic([[x_lower, x_upper, mx]], cfl, material.co, source.v)
     x = pyclaw.Dimension(x_lower,x_upper,mx,name='x')
     domain = pyclaw.Domain([x])
 
@@ -56,7 +50,8 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     solver=pyclaw.SharpClawSolver1D()
     solver.num_waves  = num_waves
     solver.num_eqn    = num_eqn
-    solver.weno_order = 5
+    solver.reconstruction_order = 5
+    solver.lim_type = 2
 
     solver.dt_variable = True
     solver.dt_initial  = dt/2.0
@@ -65,9 +60,9 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     
 #   Import Riemann and Tfluct solvers
     if conservative:
-        import maxwell_1d_rp
+        from emclaw.riemann import maxwell_1d_rp
     else:
-        import maxwell_1d_nc_rp as maxwell_1d_rp
+        from emclaw.riemann import maxwell_1d_nc_rp as maxwell_1d_rp
 
     solver.tfluct_solver = True
     solver.fwave         = True
@@ -76,9 +71,9 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
 
     if solver.tfluct_solver:
         if conservative:
-            import maxwell_1d_tfluct
+            from emclaw.riemann import maxwell_1d_tfluct
         else:
-            import maxwell_1d_nc_tfluct as maxwell_1d_tfluct
+            from emclaw.riemann import maxwell_1d_nc_tfluct as maxwell_1d_tfluct
 
         solver.tfluct = maxwell_1d_tfluct
     
@@ -133,6 +128,8 @@ def em1D(mx=1024,num_frames=10,cfl=1.0,outdir='./_output',before_step=False,debu
     claw.solution = pyclaw.Solution(state,domain)
     claw.outdir = outdir
     claw.write_aux_always = True
+    claw.output_style = output_style
+    claw.num_output_times = 10
 
     return claw
 

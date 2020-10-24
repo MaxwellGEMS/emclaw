@@ -17,7 +17,7 @@ def user_material():
 class Material(object):
 
     def save(self):
-        print self._outdir
+        print(self._outdir)
         """save class as self.name.txt"""
         try:
             os.makedirs(self._outdir)
@@ -56,7 +56,7 @@ class Material(object):
     def dump(self):
         for attr in sorted(dir(self)):
             if not attr.startswith('_'):
-                print "%s = %s" % (attr, getattr(self, attr))
+                print("%s = %s" % (attr, getattr(self, attr)))
 
     def _dump_to_latex(self):
         from tabulate import tabulate
@@ -65,7 +65,7 @@ class Material(object):
         for attr in sorted(dir(self)):
             if not attr.startswith('_'):
                 s = getattr(self,attr)
-                if isinstance(s, (str, unicode)):
+                if isinstance(s, str):
                     strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + s + r' \\' + '\n'
                 elif isinstance(s,float):
                     strt = strt + '\t' + r'\verb+' + attr + '+ \t' + r'&' + '\t' + str(s) + r' \\' + '\n'
@@ -96,7 +96,7 @@ class Material(object):
     def _dump(self,obj):
         for attr in sorted(dir(obj)):
             try:
-                print "%s = %s" % (attr, getattr(obj, attr))
+                print("%s = %s" % (attr, getattr(obj, attr)))
             except:
                 pass
 
@@ -221,7 +221,7 @@ class Material(object):
 
     def init(self,state):
         grid = state.grid
-        grid.compute_c_centers()
+        grid._compute_c_centers()
         t = state.t
         if state.num_dim==1:
             x = grid.x.centers
@@ -284,8 +284,8 @@ class Material(object):
 
         self.temp_flag = temp_flag
         if temp_flag:
-            self.delta_sigma        = 5.0*np.ones([self.num_dim,self.num_aux/2])
-            self.relative_amplitude = 0.1*np.ones([self.num_aux/2])
+            self.delta_sigma        = 5.0*np.ones([self.num_dim,self.num_aux//2])
+            self.relative_amplitude = 0.1*np.ones([self.num_aux//2])
             self.delta_eta          = self.relative_amplitude*self.bkg_eta
             self.em_equal           = True
             self.delta_sign         = 1.0
@@ -297,7 +297,7 @@ class Material(object):
             self._rip_precalc = False
 
         if self.shape.startswith('fiber'):
-            self.fiber_eta = np.ones([self.num_aux/2])
+            self.fiber_eta = np.ones([self.num_aux//2])
             self.fiber_corner = np.zeros([self.num_dim])
             self.fiber_corner[0] = -5.0
             self.fiber_width  = 5.0
@@ -307,10 +307,10 @@ class Material(object):
             self.function     = self._single_fiber
 
         if self.shape=='fiber double':
-            self.fiber_eta    = np.ones([2,self.num_aux/2])
+            self.fiber_eta    = np.ones([2,self.num_aux//2])
             self.fiber_corner = np.zeros([2,self.num_dim])
-            self.fiber_width  = 5.0*np.ones([self.num_aux/2])
-            self.fiber_length = 100.0*np.ones([self.num_aux/2])
+            self.fiber_width  = 5.0*np.ones([self.num_aux//2])
+            self.fiber_length = 100.0*np.ones([self.num_aux//2])
             self.function     = self._double_fiber
 
         if self.shape=='fiber vibrate':
@@ -318,7 +318,7 @@ class Material(object):
             self.delta_length = 5.0
             self.delta_corner = np.zeros([self.num_dim])
             self.delta_corner[0] = 5.0
-            self.delta_eta    = np.ones([self.num_aux/2])
+            self.delta_eta    = np.ones([self.num_aux//2])
             self.delta_smooth = False
             self.delta_omega  = 2.0*np.pi
             self.delta_function    = np.cos
@@ -334,12 +334,12 @@ class Material(object):
             self.update_at_each_stage = True
         
         if self.shape=='expansion':
-            self.delta_radii          = 5.0*np.ones([self.num_aux/2])
-            self.delta_expansion_rate = np.zeros([self.num_aux/2])
-            self.delta_velocity       = np.zeros([self.num_dim,self.num_aux/2])
-            self.offset               = np.zeros([self.num_dim,self.num_aux/2])
-            self.delta_sigma          = np.ones([self.num_dim,self.num_aux/2])
-            self.delta_eta            = 0.1*np.ones([self.num_aux/2])
+            self.delta_radii          = 5.0*np.ones([self.num_aux//2])
+            self.delta_expansion_rate = np.zeros([self.num_aux//2])
+            self.delta_velocity       = np.zeros([self.num_dim,self.num_aux//2])
+            self.offset               = np.zeros([self.num_dim,self.num_aux//2])
+            self.delta_sigma          = np.ones([self.num_dim,self.num_aux//2])
+            self.delta_eta            = 0.1*np.ones([self.num_aux//2])
             self.update_at_each_stage = True
             self.delta_sign           = 1.0
 
@@ -348,8 +348,8 @@ class Material(object):
             self.function = self._expanding
 
         if self.nonlinear:
-            self.chi2 = np.zeros( [self.num_aux/2], order='F')
-            self.chi3 = np.zeros( [self.num_aux/2], order='F')
+            self.chi2 = np.zeros( [self.num_aux//2], order='F')
+            self.chi3 = np.zeros( [self.num_aux//2], order='F')
 
         if self.metal:
             self.metal_corners = []
@@ -362,8 +362,8 @@ class Material(object):
         self.custom    = False
         self.averaged  = False
         self.nonlinear = True
-        self.bkg_eta   = np.ones([self.num_aux/2])
-        self.delta     = np.ones([self.num_aux/2])
+        self.bkg_eta   = np.ones([self.num_aux//2])
+        self.delta     = np.ones([self.num_aux//2])
         self.bkg_n     = np.ones([self.num_dim])
         self.n_max     = np.ones([self.num_dim])
         self._outdir   = './_output'
