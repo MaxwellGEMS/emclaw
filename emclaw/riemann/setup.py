@@ -22,8 +22,8 @@ solvers['2d'] = [
 ]
 
 solvers['3d'] = [
-    'maxwell_3d_nl_fwave.f90',
-    'maxwell_3d_nl_tfluct.f90'
+    'maxwell_3d_nc_fwave.f90',
+    'maxwell_3d_nc_tfluct.f90'
 ]
 
 

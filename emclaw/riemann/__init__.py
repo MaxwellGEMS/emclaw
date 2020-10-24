@@ -21,5 +21,5 @@ from . import maxwell_2d_nc_tfluct
 from . import maxwell_2d_rp
 from . import maxwell_2d_tfluct
 
-from . import maxwell_3d_nl_rp as maxwell_3d_nc_rp
-from . import maxwell_3d_nl_tfluct as maxwell_3d_nc_tfluct
+from . import maxwell_3d_nc_rp
+from . import maxwell_3d_nc_tfluct
