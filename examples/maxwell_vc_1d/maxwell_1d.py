@@ -1,5 +1,3 @@
-import sys
-import os
 import numpy as np
 from emclaw.utils.materials import Material1D
 from emclaw.utils.sources import Source1D
@@ -15,7 +13,7 @@ source.setup()
 x_lower = 0.
 x_upper = 100.
 
-def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5, lim_type = 2,  cfl = 1.0, conservative = True,
+def em1D(mx = 1024, num_frames = 10, use_petsc = True, cfl = 1.0, conservative = True,
          chi3 = 0.0, chi2 = 0.0, nl = False, psi = True, em = True, before_step = False,
          debug = False, outdir = './_output', output_style = 1):
 
@@ -50,7 +48,6 @@ def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5,
     solver=pyclaw.SharpClawSolver1D()
     solver.num_waves  = num_waves
     solver.num_eqn    = num_eqn
-    solver.reconstruction_order = 5
     solver.lim_type = 2
 
     solver.dt_variable = True
@@ -134,6 +131,5 @@ def em1D(mx = 1024, num_frames = 10, use_petsc = True, reconstruction_order = 5,
     return claw
 
 if __name__=="__main__":
-    import sys
     from clawpack.pyclaw.util import run_app_from_main
     output = run_app_from_main(em1D)
