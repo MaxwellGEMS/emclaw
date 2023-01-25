@@ -1,5 +1,3 @@
-import sys
-import os
 import numpy as np
 from emclaw.utils.materials import Material3D
 from emclaw.utils.sources import Source3D
@@ -33,7 +31,7 @@ source.setup()
 source.transversal_offset = [sy/2.0,sz/2.0]
 source.transversal_width  = [sy/2.0,sz/2.0]
 
-def em3D(mx=64, my=64, mz=64, num_frames=10, cfl=1.0, outdir='./_output', use_petsc=True, before_step=False, debug=False, nl=False, psi=True):
+def em3D(mx=64, my=64, mz=64, num_frames=10, cfl=1.0, outdir='./_output', before_step=False, debug=False, nl=False, psi=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
@@ -58,7 +56,6 @@ def em3D(mx=64, my=64, mz=64, num_frames=10, cfl=1.0, outdir='./_output', use_pe
     solver = pyclaw.SharpClawSolver3D()
     solver.num_waves  = num_waves
     solver.num_eqn    = num_eqn
-    solver.reconstruction_order = 5
     solver.lim_type = 2
 
     solver.dt_variable = True
@@ -135,6 +132,5 @@ def em3D(mx=64, my=64, mz=64, num_frames=10, cfl=1.0, outdir='./_output', use_pe
     return claw
 
 if __name__=="__main__":
-    import sys
     from clawpack.pyclaw.util import run_app_from_main
     output = run_app_from_main(em3D)

@@ -1,6 +1,3 @@
-import sys
-import os
-import numpy as np
 from emclaw.utils.materials import Material2D
 from emclaw.utils.sources import Source2D
 from emclaw.utils import basics
@@ -18,7 +15,7 @@ material = Material2D(shape='homogeneous',metal=False)
 material.setup()
 material._calculate_n()
 
-def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',use_petsc=True, before_step=False,debug=False,heading='x',shape='off',nl=False,psi=True,conservative=True):
+def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output', before_step=False,debug=False,heading='x',shape='off',nl=False,psi=True,conservative=True):
     import clawpack.petclaw as pyclaw
     import petsc4py.PETSc as MPI
 
@@ -61,7 +58,6 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',use_petsc=True, 
     solver = pyclaw.SharpClawSolver2D()
     solver.num_waves  = num_waves
     solver.num_eqn    = num_eqn
-    solver.reconstruction_order = 5
     solver.lim_type = 2
 
     solver.dt_variable = True
@@ -152,6 +148,5 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output',use_petsc=True, 
     return claw
 
 if __name__=="__main__":
-    import sys
     from clawpack.pyclaw.util import run_app_from_main
     output = run_app_from_main(em2D)
