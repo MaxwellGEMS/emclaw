@@ -134,3 +134,6 @@ def em3D(mx=64, my=64, mz=64, num_frames=10, cfl=1.0, outdir='./_output', before
 if __name__=="__main__":
     from clawpack.pyclaw.util import run_app_from_main
     output = run_app_from_main(em3D)
+
+    import os
+    os.system("python ../../emclaw/utils/visualization.py /home/$USER/emclaw/examples/maxwell_vc_3d/_output")

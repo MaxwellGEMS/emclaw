@@ -133,3 +133,6 @@ def em1D(mx = 1024, num_frames = 10, use_petsc = True, cfl = 1.0, conservative =
 if __name__=="__main__":
     from clawpack.pyclaw.util import run_app_from_main
     output = run_app_from_main(em1D)
+
+    import os
+    os.system("python ../../emclaw/utils/visualization.py /home/$USER/emclaw/examples/maxwell_vc_1d/_output")
