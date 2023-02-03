@@ -74,10 +74,10 @@ class toolbox(object):
         if pkl_file is None: pkl_file = os.path.join(self.outdir,self._pkl_base+str(0).zfill(4))
         if keys is None: keys = self._basic_info
 
-        filestr = pickle.Unpickler(file(pkl_file))
+        filestr = pickle.Unpickler(open(pkl_file, 'rb'))
         data1 = filestr.load()
         data2 = filestr.load()
-        data = dict(data1.items() + data2.items())
+        data = data1.copy(); data.update(data2)
 
         for name in keys:
             setattr(self, name, data[name])
@@ -194,7 +194,8 @@ class toolbox(object):
         del x
         return v,n,N
 
-    def ptc_split(self,outdir='./',ptcfile='claw.ptc0000',num_var=6,affix=['ptc','A'],debug=True,poynting=True,irange=range(6)):
+    # TODO: Make `poynting=True` work again
+    def ptc_split(self,outdir='./',ptcfile='claw.ptc0000',num_var=6,affix=['ptc','A'],debug=True,poynting=False,irange=range(6)):
         x = PETSc.Vec().create()
         x.setBlockSize(num_var)
 
