@@ -64,5 +64,9 @@ This should have generated a new subfolder named `_output` where the results are
 
 **TODO:** Generate plots.
 
+## Documentation
+
+For an outline of the calculation method, see [doc/method.pdf](doc/method.pdf).
+
 ## Support
 [damian.sanroman@kaust.edu.sa](mailto:damian.sanroman@kaust.edu.sa)
