@@ -150,3 +150,6 @@ def em2D(mx=128,my=128,num_frames=10,cfl=1.0,outdir='./_output', before_step=Fal
 if __name__=="__main__":
     from clawpack.pyclaw.util import run_app_from_main
     output = run_app_from_main(em2D)
+
+    import os
+    os.system("python ../../emclaw/utils/visualization.py /home/$USER/emclaw/examples/maxwell_vc_2d/_output")
