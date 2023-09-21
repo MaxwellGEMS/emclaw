@@ -1,15 +1,7 @@
 emclaw
 ======
 
-Solvers for Maxwell's electrodynamic equations with time-space varying coefficients based on
-[PyClaw]([https://alals](http://www.clawpack.org/pyclaw/index.html))
-
-## Setup
-
-**Tested with Ubuntu 22.10, Python 3.9.**
-
-
-### Clone this repository to your home directory
+Solvers for Maxwell's electrodynamic equations with time-space varying coefficients based on [PyClaw]([https://alals](http://www.clawpack.org/pyclaw/index.html))
 
     git clone https://github.com/shredEngineer/emclaw.git /home/$USER/emclaw
 
@@ -63,6 +55,13 @@ The console output should look like this:
 This should have generated a new subfolder named `_output` where the results are stored.
 
 **TODO:** Generate plots.
+
+## Support
+[damian.sanroman@kaust.edu.sa](mailto:damian.sanroman@kaust.edu.sa)
+
+## Documentation
+
+For an outline of the calculation method, see [doc/method.pdf](doc/method.pdf).
 
 ## Support
 [damian.sanroman@kaust.edu.sa](mailto:damian.sanroman@kaust.edu.sa)
