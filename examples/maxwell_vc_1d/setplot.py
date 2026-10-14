@@ -1,4 +1,3 @@
-
 """ 
 Set up the plot figures, axes, and items to be done for each frame.
 
@@ -8,7 +7,6 @@ function setplot is called to set the plot parameters.
 """ 
 
 import numpy as np
-
 
 #--------------------------
 def setplot(plotdata):
@@ -20,12 +18,12 @@ def setplot(plotdata):
     Output: a modified version of plotdata.
     
     """ 
-    plotdata.clearfigures()  # clear any old figures,axes,items data
+    plotdata.clearfigures()  # Clear any old figures, axes, items data
 
     # Figure for total field intensity and refractive index
     plotfigure = plotdata.new_plotfigure(name='I and n', figno=0)
     
-    # plot fields intensity
+    # Plot fields intensity
     plotaxes = plotfigure.new_plotaxes()
     plotaxes.axescmd = 'subplot(211)'
     plotaxes.xlimits = 'auto'
@@ -36,10 +34,10 @@ def setplot(plotdata):
     plotitem.plot_var = ehfields 
     plotitem.plotstyle = '-'
     plotitem.color = 'b'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':2,'markersize':1}
 
-    # plot refractive index
+    # Plot refractive index
 
     plotaxes = plotfigure.new_plotaxes()
     plotaxes.axescmd = 'subplot(212)'
@@ -51,7 +49,7 @@ def setplot(plotdata):
     plotitem.plot_var = refind
     plotitem.plotstyle = '-'
     plotitem.color = 'g'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':2,'markersize':1}
 
     
@@ -69,7 +67,7 @@ def setplot(plotdata):
     plotitem.plot_var = efield
     plotitem.plotstyle = '-'
     plotitem.color = 'b'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':1,'markersize':1}
 
     # Set up for axes in this figure:
@@ -83,7 +81,7 @@ def setplot(plotdata):
     plotitem.plot_var = refind
     plotitem.plotstyle = '-'
     plotitem.color = 'g'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':1,'markersize':1}
     
     plotfigure = plotdata.new_plotfigure(name='H field', figno=2)
@@ -97,7 +95,7 @@ def setplot(plotdata):
     plotitem.plot_var = hfield
     plotitem.plotstyle = '-'
     plotitem.color = 'r'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':1,'markersize':1}
 
     plotaxes = plotfigure.new_plotaxes()
@@ -110,12 +108,12 @@ def setplot(plotdata):
     plotitem.plot_var = refind
     plotitem.plotstyle = '-'
     plotitem.color = 'g'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':1,'markersize':1}
 
     plotfigure = plotdata.new_plotfigure(name='u and n', figno=3)
     
-    # plot fields intensity
+    # Plot fields intensity
     plotaxes = plotfigure.new_plotaxes()
     plotaxes.axescmd = 'subplot(211)'
     plotaxes.xlimits = 'auto'
@@ -126,10 +124,10 @@ def setplot(plotdata):
     plotitem.plot_var = energy 
     plotitem.plotstyle = '-'
     plotitem.color = 'b'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':2,'markersize':1}
 
-    # plot refractive index
+    # Plot refractive index
 
     plotaxes = plotfigure.new_plotaxes()
     plotaxes.axescmd = 'subplot(212)'
@@ -141,22 +139,22 @@ def setplot(plotdata):
     plotitem.plot_var = refind
     plotitem.plotstyle = '-'
     plotitem.color = 'g'
-    plotitem.show = True       # show on plot?
+    plotitem.show = True       # Show on plot?
     plotitem.kwargs = {'linewidth':2,'markersize':1}
 
-    # Parameters used only when creating html and/or latex hardcopy
+    # Parameters used only when creating HTML and/or LaTeX hardcopy
     # e.g., via visclaw.frametools.printframes:
 
-    plotdata.printfigs = True                # print figures
-    plotdata.print_format = 'png'            # file format
-    plotdata.print_framenos = 'all'          # list of frames to print
-    plotdata.print_fignos = 'all'            # list of figures to print
-    plotdata.html = True                     # create html files of plots?
+    plotdata.printfigs = True                # Print figures
+    plotdata.print_format = 'png'            # File format
+    plotdata.print_framenos = 'all'          # List of frames to print
+    plotdata.print_fignos = 'all'            # List of figures to print
+    plotdata.html = True                     # Create HTML files of plots?
     plotdata.html_homelink = '../README.html'
-    plotdata.latex = True                    # create latex file of plots?
-    plotdata.latex_figsperline = 3           # layout of plots
-    plotdata.latex_framesperline = 1         # layout of plots
-    plotdata.latex_makepdf = False           # also run pdflatex?
+    plotdata.latex = True                    # Create LaTeX file of plots?
+    plotdata.latex_figsperline = 3           # Layout of plots
+    plotdata.latex_framesperline = 1         # Layout of plots
+    plotdata.latex_makepdf = False           # Also run pdflatex?
 
     return plotdata
 
@@ -180,4 +178,3 @@ def hfield(current_data):
 def ehfields(current_data):
     ehfi = np.sqrt((current_data.q[0,:]/current_data.aux[0,:])**2 + (current_data.q[1,:]/current_data.aux[1,:])**2)
     return ehfi
-
